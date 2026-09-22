@@ -9,12 +9,13 @@ from torchvision import transforms
 class KITTIDataset(Dataset):
     """
     PyTorch Dataset for KITTI 3D Object Detection.
-    Handles image loading, label parsing, class mapping, and 3D bounding box geometry extraction.
+    Includes 3D Geometry-Aware Data Augmentation and Train/Val Split Support.
     """
-    def __init__(self, data_dir="data/kitti", config=None, is_train=True):
+    def __init__(self, data_dir="data/kitti", config=None, split="train", augment=True):
         self.data_dir = data_dir
         self.config = config
-        self.is_train = is_train
+        self.split = split
+        self.augment = augment and (split == "train")
         
         self.img_dir = os.path.join(data_dir, "image_2")
         self.label_dir = os.path.join(data_dir, "label_2")
@@ -33,15 +34,18 @@ class KITTIDataset(Dataset):
         # Target image resolution
         self.img_size = config.get('img_size', [384, 1280]) if config else [384, 1280]
         
-        # Collect image file list
-        self.image_files = sorted(glob.glob(os.path.join(self.img_dir, "*.png")))
-        
-        # PyTorch Image Preprocessing Transforms
-        self.transform = transforms.Compose([
-            transforms.Resize((self.img_size[0], self.img_size[1])),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
+        # --- Stage 7: Train / Val Split Handling ---
+        split_file = os.path.join(data_dir, f"{split}.txt")
+        if os.path.exists(split_file):
+            with open(split_file, 'r') as f:
+                self.file_ids = [line.strip() for line in f.readlines() if line.strip()]
+        else:
+            # Fallback to loading all available images if split file is not present
+            all_files = sorted(glob.glob(os.path.join(self.img_dir, "*.png")))
+            self.file_ids = [os.path.splitext(os.path.basename(f))[0] for f in all_files]
+
+        # PyTorch Image Normalization Transform
+        self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
     def parse_calibration(self, calib_path):
         """
@@ -49,7 +53,6 @@ class KITTIDataset(Dataset):
         """
         calib = {}
         if not os.path.exists(calib_path):
-            # Return identity-like default if missing
             return np.eye(3, 4)
             
         with open(calib_path, 'r') as f:
@@ -62,7 +65,7 @@ class KITTIDataset(Dataset):
 
     def parse_label(self, label_path):
         """
-        Parses annotations and maps raw classes to configured 5 classes.
+        Parses annotations and maps raw classes to configured target classes.
         """
         targets = []
         if not os.path.exists(label_path):
@@ -75,7 +78,6 @@ class KITTIDataset(Dataset):
                     continue
                 
                 raw_cls = data[0]
-                # Apply class mapping or check if class is target
                 mapped_cls = self.class_map.get(raw_cls, raw_cls)
                 if mapped_cls not in self.class_to_idx:
                     continue
@@ -102,24 +104,57 @@ class KITTIDataset(Dataset):
                 })
         return targets
 
+    def apply_geometry_aware_flip(self, image, labels, calib_p2, orig_w):
+        """
+        --- Stage 6: 3D Geometry-Aware Data Augmentation ---
+        Applies Horizontal Flip to image while correctly adjusting 2D Box, 
+        3D Angles (Alpha & Rotation_y), 3D Center X, and Calibration P2 Matrix.
+        """
+        # 1. Flip Image Horizontally
+        image = image.transpose(Image.FLIP_LEFT_RIGHT)
+        
+        # 2. Update Calibration Matrix P2 (Adjust Principal Center X: cx' = orig_w - cx)
+        calib_p2[0, 2] = orig_w - calib_p2[0, 2]
+
+        # 3. Adjust Bounding Boxes and 3D Geometry
+        for target in labels:
+            # Flip 2D Bounding Box: [x1, y1, x2, y2] -> [orig_w - x2, y1, orig_w - x1, y2]
+            x1, y1, x2, y2 = target['bbox_2d']
+            target['bbox_2d'] = [orig_w - x2, y1, orig_w - x1, y2]
+            
+            # Mirror Orientation Angles
+            target['alpha'] = -target['alpha']
+            target['rotation_y'] = -target['rotation_y']
+            
+            # Mirror 3D Center Location X-coordinate
+            target['location_3d'][0] = -target['location_3d'][0]
+
+        return image, labels, calib_p2
+
     def __len__(self):
-        return len(self.image_files)
+        return len(self.file_ids)
 
     def __getitem__(self, idx):
-        img_path = self.image_files[idx]
-        file_id = os.path.splitext(os.path.basename(img_path))[0]
+        file_id = self.file_ids[idx]
         
+        img_path = os.path.join(self.img_dir, f"{file_id}.png")
         label_path = os.path.join(self.label_dir, f"{file_id}.txt")
         calib_path = os.path.join(self.calib_dir, f"{file_id}.txt")
 
-        # 1. Load and Transform Image
+        # 1. Load Image and Calibration Matrix
         image = Image.open(img_path).convert('RGB')
         orig_w, orig_h = image.size
-        img_tensor = self.transform(image)
-
-        # 2. Parse Calibration and Labels
         p2_matrix = self.parse_calibration(calib_path)
         labels = self.parse_label(label_path)
+
+        # 2. Apply Stage 6 Data Augmentation (Random Horizontal Flip with 50% probability)
+        if self.augment and np.random.rand() > 0.5:
+            image, labels, p2_matrix = self.apply_geometry_aware_flip(image, labels, p2_matrix, orig_w)
+
+        # 3. Resize and Normalize Image Tensor
+        image_resized = image.resize((self.img_size[1], self.img_size[0]), Image.BILINEAR)
+        img_tensor = transforms.ToTensor()(image_resized)
+        img_tensor = self.normalize(img_tensor)
 
         return {
             'image': img_tensor,

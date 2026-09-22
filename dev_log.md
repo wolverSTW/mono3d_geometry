@@ -36,3 +36,19 @@
 1. **Config-Driven Classes:** Supports `nc: 5` (`Car`, `Van`, `Truck`, `Pedestrian`, `Cyclist`).
 2. **KITTI Data Parser:** Extracting image tensors, Intrinsic Projection Matrix ($P_2$), 2D Boxes, and 3D Box Parameters ($h, w, l, x, y, z, \alpha$).
 3. **Verification Passed:** Executed `scripts/verify_dataset.py` with 100% success on dummy data pipeline.
+
+## Phase 2 (Completed): Full KITTI Data Preprocessing & Pipeline Verification
+
+### Status
+- **Status:** COMPLETED (All 8 Pre-processing Stages Implemented)
+- **Action:** Upgraded `datasets/kitti_dataset.py` with 3D Geometry-Aware Augmentations and created `scripts/create_splits.py`.
+
+### Implemented Pre-processing Stages
+1. **Image & Annotation Loading:** RGB Images, KITTI 3D labels, and Calibration matrices ($P_2$) parser.
+2. **Category Selection:** 5 Target Classes (`Car`, `Van`, `Truck`, `Pedestrian`, `Cyclist`) configured in YAML.
+3. **Format Conversion:** Converted raw KITTI annotations into PyTorch Tensor dictionary representations.
+4. **2D & 3D Box Parameters Extraction:** 2D Box $[x_1, y_1, x_2, y_2]$, 3D Dimensions $[h, w, l]$, Location $[x, y, z]$, and Alpha.
+5. **Resizing & Normalization:** Resized images to $[384, 1280]$ and applied ImageNet normalization.
+6. **3D Geometry-Aware Data Augmentation:** Implemented `apply_geometry_aware_flip()` handling horizontal flipping with synchronous update to 2D boxes, Observation Angle $\alpha$, Yaw angle, and Calibration Principal Point $c_x$.
+7. **Train/Val Split Management:** Created automated split manager (`scripts/create_splits.py`) and split file support (`train.txt`, `val.txt`).
+8. **Consistency Verification:** Executed `scripts/verify_dataset.py` verifying batch consistency and label alignment.

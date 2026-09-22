@@ -1,26 +1,39 @@
 import sys
 import os
+import yaml
 
-# Add root directory to python path
+# Add root directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.config_parser import load_config
 from datasets.kitti_dataset import KITTIDataset
-from torch.utils.data import DataLoader
+
+def verify():
+    config_path = "configs/mono3d_config.yaml"
+    config = {}
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+
+    print("[DATASET CHECK] Initializing KITTIDataset (split='train')...")
+    dataset = KITTIDataset(data_dir="data/kitti", config=config, split="train", augment=True)
+    
+    total_samples = len(dataset)
+    print(f"[DATASET CHECK] Total Loaded Samples: {total_samples}")
+    
+    if total_samples == 0:
+        print("[WARNING] No dataset samples found. Please run scripts/create_dummy_data.py and scripts/create_splits.py first.")
+        return
+
+    sample = dataset[0]
+    print("\n--- First Sample Verification ---")
+    print(f"File ID      : {sample['file_id']}")
+    print(f"Image Tensor : {sample['image'].shape} (Channels x Height x Width)")
+    print(f"Calib P2     : {sample['calib_p2'].shape}")
+    print(f"Labels Count : {len(sample['labels'])}")
+    if len(sample['labels']) > 0:
+        print(f"Sample Label : {sample['labels'][0]}")
+
+    print("\n[SUCCESS] Dataset Loader verification passed!")
 
 if __name__ == "__main__":
-    config = load_config("configs/mono3d_config.yaml")
-    
-    dataset = KITTIDataset(data_dir="data/kitti", config=config, is_train=True)
-    print(f"[DATASET CHECK] Total Loaded Samples: {len(dataset)}")
-    
-    if len(dataset) > 0:
-        sample = dataset[0]
-        print(f"[SAMPLE CHECK] Image Tensor Shape: {sample['image'].shape}")
-        print(f"[SAMPLE CHECK] Calibration P2 Shape: {sample['calib_p2'].shape}")
-        print(f"[SAMPLE CHECK] Total Annotations in Sample 0: {len(sample['labels'])}")
-        if len(sample['labels']) > 0:
-            print(f"[SAMPLE CHECK] First Object Class: {sample['labels'][0]['class_name']} (Index: {sample['labels'][0]['class_idx']})")
-        print("[SUCCESS] Dataset Loader verification passed!")
-    else:
-        print("[WARNING] No dataset samples found. Please run scripts/create_dummy_data.py first.")
+    verify()
