@@ -64,3 +64,14 @@
 2. **`models/head3d.py`:** Custom multi-scale 3D detection heads predicting 2D Box Offsets, Classification Logits, 3D Dimension Residuals ($h, w, l$), and Orientation ($\alpha$).
 3. **`models/mono3d_network.py`:** Full network wrapper coordinating Backbone feature extraction and 3D Head forward passes.
 4. **Verification:** Validated multi-scale output tensor dimensions using `scripts/verify_model.py`.
+
+## Phase 4 (Completed): Multi-task 3D Loss Function & Training Pipeline
+
+### Status
+- **Status:** COMPLETED
+- **Action:** Created `losses/loss3d.py` and `train.py` pipeline.
+
+### Implementation Details
+1. **`losses/loss3d.py`:** Multi-task Loss Handler computing Classification Loss, 2D BBox Regression Loss, 3D Dimension Residual Loss, and Multi-bin Orientation Loss.
+2. **`train.py`:** PyTorch Training Loop integrated with custom `collate_fn`, train/val loaders, evaluation, and checkpoint saving (`weights/mono3d_phase4_latest.pth`).
+3. **Verification:** Verified end-to-end execution of `train.py` with multi-scale loss propagation.
