@@ -1,4 +1,9 @@
+import sys
 import os
+
+# Root Directory ကို Python Path သို့ ပေါင်းထည့်ခြင်း
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import glob
 import numpy as np
 from collections import defaultdict
@@ -32,7 +37,7 @@ def run_comprehensive_eda(data_dir="data/kitti/label_2"):
 
     label_files = glob.glob(os.path.join(data_dir, "*.txt"))
     if not label_files:
-        logger.error(f"No label files found in '{data_dir}'. Please run download_kitti.py first.")
+        logger.error(f"No label files found in '{data_dir}'. Please run create_dummy_data.py or download_kitti.py first.")
         return
 
     logger.info(f"Total Label Files Analyzed: {len(label_files)}")
@@ -41,7 +46,6 @@ def run_comprehensive_eda(data_dir="data/kitti/label_2"):
     occlusion_counts = defaultdict(int)
     truncation_stats = []
 
-    # Per class storage
     class_dims = defaultdict(list)    # h, w, l
     class_depths = defaultdict(list)  # z location
     class_alphas = defaultdict(list)  # observation angle
@@ -61,7 +65,7 @@ def run_comprehensive_eda(data_dir="data/kitti/label_2"):
             class_alphas[cls_type].append(obj['alpha'])
             total_objects += 1
 
-    # --- 1. OVERALL STATISTICAL REPORT ---
+    # 1. OVERALL STATISTICAL REPORT
     logger.info("\n" + "="*50)
     logger.info("1. OVERALL DATASET SUMMARY")
     logger.info("="*50)
@@ -77,7 +81,7 @@ def run_comprehensive_eda(data_dir="data/kitti/label_2"):
         perc = (count / total_objects) * 100
         logger.info(f"  - {occlusion_labels.get(occ_k, 'Other'):<18}: {count:>6} ({perc:>5.2f}%)")
 
-    # --- 2. PER-CLASS STATISTICAL ANALYSIS ---
+    # 2. PER-CLASS STATISTICAL ANALYSIS
     logger.info("\n" + "="*50)
     logger.info("2. PER-CLASS 3D GEOMETRY STATISTICS")
     logger.info("="*50)
@@ -88,14 +92,12 @@ def run_comprehensive_eda(data_dir="data/kitti/label_2"):
         
         logger.info(f"\n[CLASS: {cls_name}] (Count: {class_counts[cls_name]})")
         
-        # Dimensions stats: Height, Width, Length
         mean_h, mean_w, mean_l = np.mean(dims, axis=0)
         std_h, std_w, std_l = np.std(dims, axis=0)
         logger.info(f"  3D Dimensions (Height, Width, Length) in meters:")
         logger.info(f"    - Mean : H={mean_h:.2f}m, W={mean_w:.2f}m, L={mean_l:.2f}m")
         logger.info(f"    - Std  : H={std_h:.2f}m, W={std_w:.2f}m, L={std_l:.2f}m")
         
-        # Depth stats
         mean_z, std_z = np.mean(depths), np.std(depths)
         min_z, max_z = np.min(depths), np.max(depths)
         logger.info(f"  Depth Distribution (Z-Distance):")
