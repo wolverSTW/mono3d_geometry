@@ -75,3 +75,18 @@
 1. **`losses/loss3d.py`:** Multi-task Loss Handler computing Classification Loss, 2D BBox Regression Loss, 3D Dimension Residual Loss, and Multi-bin Orientation Loss.
 2. **`train.py`:** PyTorch Training Loop integrated with custom `collate_fn`, train/val loaders, evaluation, and checkpoint saving (`weights/mono3d_phase4_latest.pth`).
 3. **Verification:** Verified end-to-end execution of `train.py` with multi-scale loss propagation.
+
+## Phase 5 (Completed): Evaluation & 3D Bounding Box Visualization
+
+### Status
+- **Status:** COMPLETED
+- **Action:** Created `val.py` and `visualize.py` modules. Generated visualization outputs in `outputs/`.
+
+### Details
+1. **`val.py`:** Evaluates trained model checkpoints on validation split and logs multi-task loss metrics.
+2. **`visualize.py`:** Renders 2D/3D bounding box predictions on sample KITTI camera images and saves result to `outputs/sample_3d_vis.png`.
+3. **Verification:** Validated execution of both evaluation and visualization pipelines.
+
+### Update on Phase 5 Visualization
+- Refactored `visualize.py` to highlight 2D Bounding Box and predicted 3D Dimensions ($h \times w \times l$) explicitly.
+- Omitted 3D Depth/Wireframe projection until the distance estimation phase is integrated.
