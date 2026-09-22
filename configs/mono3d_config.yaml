@@ -1,0 +1,14 @@
+# Dataset Configuration
+nc: 3
+names: ['Car', 'Pedestrian', 'Cyclist']
+
+# Image & Data Preprocessing
+img_size: [384, 1280]
+
+# Training Hyperparameters
+train:
+  epochs: 50
+  batch_size: 8
+  lr: 0.0003
+  weight_decay: 0.0001
+  patience: 10
