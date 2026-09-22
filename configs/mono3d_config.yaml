@@ -1,6 +1,16 @@
-# Dataset Configuration
-nc: 3
-names: ['Car', 'Pedestrian', 'Cyclist']
+# Dataset Configuration (5 Classes)
+nc: 5
+names: ['Car', 'Van', 'Truck', 'Pedestrian', 'Cyclist']
+
+# Class Mapping Strategy (Optional Custom Rules)
+# Raw KITTI Classes -> Target Class Mapping
+class_map:
+  Car: 'Car'
+  Van: 'Van'
+  Truck: 'Truck'
+  Pedestrian: 'Pedestrian'
+  Person_sitting: 'Pedestrian'  # Person_sitting ကို Pedestrian အဖြစ် ပေါင်းစပ်ထားသည်
+  Cyclist: 'Cyclist'
 
 # Image & Data Preprocessing
 img_size: [384, 1280]
