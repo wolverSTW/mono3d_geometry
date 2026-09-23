@@ -1,10 +1,15 @@
 import os
 import sys
 import yaml
+import time
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
+print("[DEBUG 1/7] Importing KITTIDataset...", flush=True)
 from datasets.kitti_dataset import KITTIDataset
+
+print("[DEBUG 2/7] Importing Mono3DNetwork & Loss...", flush=True)
 from models.mono3d_network import Mono3DNetwork
 from losses.loss3d import MultiTaskLoss3D
 
@@ -24,11 +29,12 @@ def collate_fn(batch):
     }
 
 def main():
-    print("=== [PHASE 4] Starting Config-Driven Mono3D Training ===")
+    print("=== [PHASE 4] Starting Config-Driven Mono3D Training ===", flush=True)
     
     config_path = "configs/mono3d_config.yaml"
     config = {}
     if os.path.exists(config_path):
+        print(f"[DEBUG 3/7] Loading config file from {config_path}...", flush=True)
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
 
@@ -39,27 +45,51 @@ def main():
     weight_decay = train_cfg.get('weight_decay', 1e-4)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"[INFO] Using Device: {device}")
+    print(f"[INFO] Using Device: {device}", flush=True)
 
+    print("[DEBUG 4/7] Loading Training Dataset...", flush=True)
+    t0 = time.time()
     train_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="train", augment=True)
+    print(f"[DEBUG 4/7 Done] Train Dataset loaded in {time.time()-t0:.2f}s ({len(train_dataset)} samples)", flush=True)
+
+    print("[DEBUG 5/7] Loading Validation Dataset...", flush=True)
+    t0 = time.time()
     val_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="val", augment=False)
+    print(f"[DEBUG 5/7 Done] Val Dataset loaded in {time.time()-t0:.2f}s ({len(val_dataset)} samples)", flush=True)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
+    # Initializing DataLoader with num_workers=0 to prevent multi-processing hangs
+    train_loader = DataLoader(
+        train_dataset, 
+        batch_size=batch_size, 
+        shuffle=True, 
+        collate_fn=collate_fn,
+        num_workers=0,
+        pin_memory=True
+    )
+    val_loader = DataLoader(
+        val_dataset, 
+        batch_size=batch_size, 
+        shuffle=False, 
+        collate_fn=collate_fn,
+        num_workers=0,
+        pin_memory=True
+    )
 
-    # Config-driven Model initialization
+    print("[DEBUG 6/7] Initializing Model & Loss to GPU...", flush=True)
     model = Mono3DNetwork(config=config).to(device)
     criterion = MultiTaskLoss3D(num_classes=config.get('model', {}).get('num_classes', 5)).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     os.makedirs("weights", exist_ok=True)
+    print(f"[DEBUG 7/7] Starting Training Loop ({epochs} Epochs)...", flush=True)
 
     for epoch in range(1, epochs + 1):
         model.train()
         train_loss = 0.0
         
-        for batch_idx, batch in enumerate(train_loader):
-            images = batch['image'].to(device)
+        pbar = tqdm(train_loader, desc=f"Epoch [{epoch}/{epochs}] Train", leave=True, dynamic_ncols=True)
+        for batch_idx, batch in enumerate(pbar):
+            images = batch['image'].to(device, non_blocking=True)
             targets = batch['labels']
 
             optimizer.zero_grad()
@@ -71,14 +101,16 @@ def main():
             optimizer.step()
 
             train_loss += loss.item()
+            pbar.set_postfix({'loss': f"{loss.item():.4f}"})
 
         avg_train_loss = train_loss / max(len(train_loader), 1)
 
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
-            for batch in val_loader:
-                images = batch['image'].to(device)
+            val_pbar = tqdm(val_loader, desc=f"Epoch [{epoch}/{epochs}] Val  ", leave=False, dynamic_ncols=True)
+            for batch in val_pbar:
+                images = batch['image'].to(device, non_blocking=True)
                 targets = batch['labels']
                 predictions = model(images)
                 loss_dict = criterion(predictions, targets)
@@ -86,11 +118,11 @@ def main():
 
         avg_val_loss = val_loss / max(len(val_loader), 1)
 
-        print(f"Epoch [{epoch}/{epochs}] - Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
+        print(f"--> Epoch [{epoch}/{epochs}] Completed | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}", flush=True)
 
     checkpoint_path = "weights/mono3d_phase4_latest.pth"
     torch.save(model.state_dict(), checkpoint_path)
-    print(f"[SUCCESS] Model Checkpoint saved at '{checkpoint_path}'.")
+    print(f"[SUCCESS] Model Checkpoint saved at '{checkpoint_path}'.", flush=True)
 
 if __name__ == "__main__":
     main()

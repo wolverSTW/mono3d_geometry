@@ -139,3 +139,9 @@
 - Preserved original `train.py` logic, `MultiTaskLoss3D`, and configuration.
 - Added `tqdm` progress bars for real-time batch-level training and validation updates.
 - Added `flush=True` to stdout prints to bypass terminal buffering delays.
+
+### Training Real-Time Logging & DataLoader Optimization
+- Added step-by-step debug checkpoints (`[DEBUG 1/7]` to `[DEBUG 7/7]`) in `train.py` to identify initialization bottlenecks.
+- Integrated `tqdm` progress bars for batch-level training and validation updates with `dynamic_ncols=True`.
+- Forced `flush=True` on stdout statements and set `PYTHONUNBUFFERED=1` support to prevent terminal output buffering.
+- Optimized DataLoader settings (`num_workers=0`, `pin_memory=True`, `non_blocking=True`) to avoid multi-processing hangs and speed up host-to-GPU data transfer on RTX 4090.
