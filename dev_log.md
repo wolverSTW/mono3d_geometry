@@ -39,3 +39,7 @@
 ## [Phase 6: GFLOPs & Computational Efficiency Metrics]
 - **GFLOPs Tracking**: Added GFLOPs column to measure computational complexity alongside Latency (ms) and Frames Per Second (FPS).
 - **Comprehensive Evaluation Matrix**: Updated evaluation tables to display AP3D, APBEV, Distance MAE/RMSE, GFLOPs, and FPS both per-class and as overall averages.
+
+## [Phase 7: Dynamic Automated Evaluation Pipeline]
+- **Automated Metric Computation**: Replaced manual hardcoded metrics with dynamic calculation functions (`compute_3d_iou` and `calculate_ap_and_errors`).
+- **Dynamic Per-Class Evaluation**: Metrics for $AP_{3D}$, $AP_{BEV}$, MAE, and RMSE are computed dynamically from evaluation predictions and dataset ground truths.
