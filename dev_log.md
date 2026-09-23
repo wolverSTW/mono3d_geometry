@@ -93,3 +93,7 @@
 
 ### Pipeline Automation Fix
 - Included `python scripts/download_kitti.py` into `run_all.sh` to ensure automated KITTI dataset fetching before running verification and EDA.
+
+### Bug Fix & Import Path Resolution
+- Fixed `ModuleNotFoundError` in `scripts/download_kitti.py` by appending project root path to `sys.path`.
+- Ensured automated download and extraction of KITTI dataset images, labels, and calibration files seamlessly execute via `run_all.sh`.

@@ -1,4 +1,9 @@
+import sys
 import os
+
+# Project root directory ကို Python path ထဲ ထည့်ပေးခြင်း
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import zipfile
 import urllib.request
 from tqdm import tqdm
