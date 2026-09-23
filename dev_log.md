@@ -110,3 +110,6 @@
 
 ### Requirements Update
 - Updated `requirements.txt` to explicitly include `pandas`, `matplotlib`, `seaborn`, and `tqdm` for automated EDA report and plot generation.
+
+### Logger Bug Fix
+- Updated `utils/logger.py` to auto-create missing subdirectories when custom output log paths are provided (fixing `FileNotFoundError` in EDA).

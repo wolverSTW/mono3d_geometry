@@ -1,23 +1,36 @@
-import logging
 import os
-import sys
+import logging
 
-def setup_logger(log_dir="logs", log_filename="training.log"):
-    os.makedirs(log_dir, exist_ok=True)
-    log_filepath = os.path.join(log_dir, log_filename)
-    
-    logger = logging.getLogger("Mono3D")
+def setup_logger(log_filename="training.log", name="mono3d"):
+    """
+    Sets up logger and automatically creates non-existent log directories.
+    """
+    logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
-    logger.handlers = []
+    logger.handlers.clear()  # Prevent duplicate handlers
 
-    c_handler = logging.StreamHandler(sys.stdout)
+    # Determine full log path
+    if os.path.isabs(log_filename) or "/" in log_filename:
+        log_filepath = log_filename
+    else:
+        log_filepath = os.path.join("logs", log_filename)
+
+    # Ensure output directory exists before creating FileHandler
+    os.makedirs(os.path.dirname(log_filepath), exist_ok=True)
+
+    # Handlers
     f_handler = logging.FileHandler(log_filepath)
+    c_handler = logging.StreamHandler()
 
-    format_str = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    c_handler.setFormatter(format_str)
-    f_handler.setFormatter(format_str)
+    f_handler.setLevel(logging.INFO)
+    c_handler.setLevel(logging.INFO)
 
-    logger.addHandler(c_handler)
+    # Formatter
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    f_handler.setFormatter(formatter)
+    c_handler.setFormatter(formatter)
+
     logger.addHandler(f_handler)
+    logger.addHandler(c_handler)
 
     return logger
