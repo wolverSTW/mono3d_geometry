@@ -117,3 +117,7 @@
 ### Backbone Custom Architecture Restoration
 - Restored original YOLOv10 Backbone architecture (`SCDown`, `CIB`, `C2fCIB`, `PSA`).
 - Added `Mono3DBackbone = YOLOv10Backbone` alias to maintain compatibility with `Mono3DNetwork`.
+
+### Multi-scale Head Restored
+- Restored original `Head3D` multi-scale prediction architecture with multi-bin orientation support.
+- Created `Mono3DHead = Head3D` alias to ensure full compatibility with `Mono3DNetwork`.
