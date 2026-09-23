@@ -165,3 +165,7 @@
 ### Fixed BatchNorm Single-Sample Batch Bug
 - Enabled `drop_last=True` on `train_loader` to prevent `BatchNorm2d` errors when the last training batch contains only 1 sample (`torch.Size([1, C, H, W])`).
 - Ensured strict switching to `model.eval()` mode during evaluation.
+
+### Fixed Missing Evaluation Script and Loss Calculation
+- Created `val.py` for Step 7 post-training validation and checkpoint assessment.
+- Fixed zero-loss bug in `losses/loss3d.py` to ensure proper gradient computation and valid loss metrics.
