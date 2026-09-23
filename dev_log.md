@@ -157,3 +157,7 @@
 ### Synchronized Training Scripts & Optimized GPU Pipeline
 - Synchronized `train.py` and `scripts/train.py` to completely eliminate residual debug prints.
 - Configured DataLoader with `num_workers=8`, `prefetch_factor=2`, and `persistent_workers=True` to relieve CPU data-loading bottleneck.
+
+### Consolidated Root Execution Architecture
+- Moved `train.py` exclusively to the root directory and deleted redundant `scripts/train.py`.
+- Updated `run_all.sh` to execute Root `train.py` directly.
