@@ -18,6 +18,8 @@ model:
       cls_head: 5         # Number of classes
       bbox2d_head: 4      # [x, y, w, h]
       dim3d_head: 3       # [height, width, length]
+      depth_head: 1       # [z_depth / disparity]
+      orient_head: 2      # [sin(ry), cos(ry)]
 
 training:
   epochs: 50
@@ -25,3 +27,9 @@ training:
   lr: 0.001
   weight_decay: 0.0001
   save_dir: "weights"
+  loss_weights:
+    cls: 1.0
+    bbox2d: 1.0
+    dim3d: 1.0
+    depth: 2.0
+    orient: 1.0
