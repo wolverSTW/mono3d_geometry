@@ -90,3 +90,6 @@
 ### Update on Phase 5 Visualization
 - Refactored `visualize.py` to highlight 2D Bounding Box and predicted 3D Dimensions ($h \times w \times l$) explicitly.
 - Omitted 3D Depth/Wireframe projection until the distance estimation phase is integrated.
+
+### Pipeline Automation Fix
+- Included `python scripts/download_kitti.py` into `run_all.sh` to ensure automated KITTI dataset fetching before running verification and EDA.
