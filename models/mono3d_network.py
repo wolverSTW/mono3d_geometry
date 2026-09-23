@@ -5,7 +5,8 @@ from models.head3d import Mono3DHead
 
 class Mono3DNetwork(nn.Module):
     """
-    Config-driven Monocular 3D Detection Network Architecture
+    Config-driven Lightweight Monocular 3D Detection Network Architecture.
+    Integrates YOLOv10 Backbone and Multi-task Head with Depth Gate & Geometric Uncertainty.
     """
     def __init__(self, config=None, num_classes=5):
         super(Mono3DNetwork, self).__init__()
@@ -20,9 +21,10 @@ class Mono3DNetwork(nn.Module):
 
         self.num_classes = model_cfg.get('num_classes', num_classes)
         in_channels = backbone_cfg.get('in_channels', 3)
+        weights_path = backbone_cfg.get('weights_path', None)
         
-        # 1. Config-driven Backbone
-        self.backbone = Mono3DBackbone(in_channels=in_channels)
+        # 1. Config-driven Backbone (Pretrained weights support)
+        self.backbone = Mono3DBackbone(in_channels=in_channels, weights_path=weights_path)
 
         # Backbone မှ ထွက်လာသော out_channels [256, 512, 1024] ကို dynamic ယူရန်
         self.feature_channels = getattr(self.backbone, 'out_channels', backbone_cfg.get('feature_channels', [256, 512, 1024]))
@@ -31,6 +33,8 @@ class Mono3DNetwork(nn.Module):
         self.head = Mono3DHead(
             in_channels=self.feature_channels, 
             num_classes=self.num_classes,
+            num_bins=head_cfg.get('num_bins', 12),
+            use_depth_gate=head_cfg.get('use_depth_gate', True),
             use_scdown=head_cfg.get('use_scdown', True),
             use_c2fcib=head_cfg.get('use_c2fcib', True),
             use_psa=head_cfg.get('use_psa', True)
@@ -39,6 +43,6 @@ class Mono3DNetwork(nn.Module):
     def forward(self, x):
         # Extract multi-scale features via backbone
         features = self.backbone(x)
-        # Predict 2D boxes, classes, and 3D dimensions via multi-task head
+        # Predict 2D boxes, classes, depth uncertainty, and 3D dimensions via multi-task head
         predictions = self.head(features)
         return predictions
