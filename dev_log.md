@@ -12,3 +12,16 @@
 - **YOLOv10 Backbone Integration**: Updated `configs/mono3d_config.yaml` to utilize YOLOv10 multi-scale feature maps (P3, P4, P5).
 - **Head Modules**: Enabled SCDown, C2fCIB, and PSA (Partial Self-Attention) modules to improve spatial and multi-scale contextual awareness.
 - **Training Strategy**: Extended training schedule to **50 Epochs**, added `weight_decay=0.0001`, and increased depth loss weighting (`depth: 2.0`) to constrain depth regression errors.
+
+## [Phase 4: Quantitative Evaluation & Ablation Framework]
+- **Evaluation Pipeline Integration**: Built `evaluate.py` to systematically measure $AP_{3D}$, $AP_{BEV}$, Metric Distance Error (MAE, RMSE), and Computational Efficiency (FPS, Latency).
+- **Metric Definitions**:
+  - **Detection Accuracy**: $AP_{3D}$ and $AP_{BEV}$ evaluated across Easy, Moderate, and Hard KITTI difficulty levels.
+  - **Distance Error**: MAE and RMSE calculated on predicted depth $z$ vs ground truth depth $z$.
+  - **Efficiency**: Latency (ms/frame) and FPS measured on target GPU hardware.
+- **Comparative Baseline Setup**:
+  - Baseline: Standard YOLOv10 2D/3D Regression Head.
+  - Geometry-Guided Proposed Method: YOLOv10 + Multi-Scale Feature Map (P3-P5) + Depth Loss Weighting ($2.0$).
+- **Ablation Strategy**:
+  - Test 1: Pure Backbone vs Multi-scale FPN.
+  - Test 2: Standard L1 Depth Loss vs Geometry-guided Loss Weighting.
