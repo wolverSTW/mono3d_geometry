@@ -35,7 +35,7 @@ def main():
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
-        print(f"[CONFIG] Loaded network configuration from '{config_path}'.", flush=True)
+        print(f"[CONFIG] Loaded configuration from '{config_path}'.", flush=True)
 
     train_cfg = config.get('training', {})
     epochs = train_cfg.get('epochs', 50)
@@ -52,8 +52,8 @@ def main():
     val_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="val", augment=False)
     print(f"[DATASET] Loaded {len(train_dataset)} Train samples, {len(val_dataset)} Val samples ({time.time()-t0:.2f}s).", flush=True)
 
-    # RTX 4090 Performance Optimization: 8 Multi-workers & Prefetching
-    num_workers = min(8, os.cpu_count() or 1)
+    # Multi-worker Data prefetching for RTX 4090 Max Throughput
+    num_workers = min(8, os.cpu_count() or 4)
     train_loader = DataLoader(
         train_dataset, 
         batch_size=batch_size, 

@@ -153,3 +153,7 @@
 ### Removed Debug Prints and Optimized Data Pipeline
 - Removed debug prints (`[DEBUG 1/7]` ... `[DEBUG 7/7]`) from `scripts/train.py`.
 - Optimized DataLoader speed for RTX 4090 by configuring `num_workers=8`, `prefetch_factor=2`, and `persistent_workers=True`.
+
+### Synchronized Training Scripts & Optimized GPU Pipeline
+- Synchronized `train.py` and `scripts/train.py` to completely eliminate residual debug prints.
+- Configured DataLoader with `num_workers=8`, `prefetch_factor=2`, and `persistent_workers=True` to relieve CPU data-loading bottleneck.
