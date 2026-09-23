@@ -172,3 +172,6 @@
 
 ### Fixed Loss Computation Input Handling
 - Updated `losses/loss3d.py` to handle predictions provided as `list`, `tuple`, `dict`, or single `Tensor` without raising `AttributeError`.
+
+### Fixed Loss Computation Tensor Type
+- Fixed `losses/loss3d.py` to guarantee that the output loss dictionary contains a valid PyTorch Tensor rather than a Python float, resolving the `loss.backward()` AttributeError.
