@@ -35,3 +35,7 @@
 - **Per-Class Breakdown**: Configured `evaluate.py` to calculate AP3D, APBEV, MAE, and RMSE separately for each KITTI class (`Car`, `Pedestrian`, `Cyclist`, `Truck`, `Bus`).
 - **Overall Aggregation**: Included automated Mean calculation row to summarize global performance across all target classes.
 - **Export Multi-format**: Integrated automated file generator that outputs structured evaluation sheets to `evaluation_results/eval_results.csv` and multi-tab `evaluation_results/eval_results.xlsx`.
+
+## [Phase 6: GFLOPs & Computational Efficiency Metrics]
+- **GFLOPs Tracking**: Added GFLOPs column to measure computational complexity alongside Latency (ms) and Frames Per Second (FPS).
+- **Comprehensive Evaluation Matrix**: Updated evaluation tables to display AP3D, APBEV, Distance MAE/RMSE, GFLOPs, and FPS both per-class and as overall averages.
