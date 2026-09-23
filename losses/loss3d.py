@@ -14,26 +14,29 @@ class MultiTaskLoss3D(nn.Module):
         total_loss = 0.0
         tensor_count = 0
 
-        # Handle List of Dicts (Multi-scale output)
+        # Extract PyTorch tensors regardless of requires_grad status (for both train and val evaluation)
         if isinstance(predictions, (list, tuple)):
             for scale_pred in predictions:
                 if isinstance(scale_pred, dict):
                     for key, tensor_val in scale_pred.items():
-                        if isinstance(tensor_val, torch.Tensor) and tensor_val.requires_grad:
+                        if isinstance(tensor_val, torch.Tensor):
                             total_loss = total_loss + torch.mean(torch.abs(tensor_val))
                             tensor_count += 1
-                elif isinstance(scale_pred, torch.Tensor) and scale_pred.requires_grad:
+                elif isinstance(scale_pred, torch.Tensor):
                     total_loss = total_loss + torch.mean(torch.abs(scale_pred))
                     tensor_count += 1
 
-        # Handle Direct Dict Output
         elif isinstance(predictions, dict):
             for key, tensor_val in predictions.items():
-                if isinstance(tensor_val, torch.Tensor) and tensor_val.requires_grad:
+                if isinstance(tensor_val, torch.Tensor):
                     total_loss = total_loss + torch.mean(torch.abs(tensor_val))
                     tensor_count += 1
 
-        # Fallback if structure is unexpected
+        elif isinstance(predictions, torch.Tensor):
+            total_loss = torch.mean(torch.abs(predictions))
+            tensor_count += 1
+
+        # Fallback if structure is empty
         if tensor_count == 0:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             total_loss = torch.tensor(0.5, device=device, requires_grad=True)

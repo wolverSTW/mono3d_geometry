@@ -60,9 +60,7 @@ def main():
         collate_fn=collate_fn,
         num_workers=num_workers,
         pin_memory=True,
-        drop_last=True,
-        persistent_workers=True if num_workers > 0 else False,
-        prefetch_factor=2 if num_workers > 0 else None
+        drop_last=True
     )
     val_loader = DataLoader(
         val_dataset, 
@@ -71,8 +69,7 @@ def main():
         collate_fn=collate_fn,
         num_workers=num_workers,
         pin_memory=True,
-        drop_last=False,
-        persistent_workers=True if num_workers > 0 else False
+        drop_last=False
     )
     print(f"[PIPELINE] DataLoaders initialized with Batch Size={batch_size}, Workers={num_workers}.", flush=True)
 
@@ -121,6 +118,7 @@ def main():
 
         avg_train_loss = train_loss / max(len(train_loader), 1)
 
+        # Validation Phase
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
