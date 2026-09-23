@@ -12,6 +12,10 @@ class Head3D(nn.Module):
         self.num_bins = num_bins
         self.use_scdown = use_scdown
         
+        # Explicitly set channels to match YOLOv10 Backbone output [256, 512, 1024]
+        if in_channels is None:
+            in_channels = [256, 512, 1024]
+            
         self.shared_convs = nn.ModuleList([
             nn.Sequential(
                 nn.Conv2d(c, 256, kernel_size=3, padding=1),

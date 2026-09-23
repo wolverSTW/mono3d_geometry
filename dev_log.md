@@ -127,3 +127,6 @@
 
 ### Head3D Init Parameter Support
 - Updated `Head3D.__init__()` to accept `use_scdown` and additional `**kwargs` passed by `Mono3DNetwork`.
+
+### Fixed Head Channel Mismatch Error
+- Explicitly ensured `Head3D` receives `in_channels=[256, 512, 1024]` matching `YOLOv10Backbone` output dimensions.
