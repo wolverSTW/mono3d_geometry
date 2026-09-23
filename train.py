@@ -60,7 +60,7 @@ def main():
         collate_fn=collate_fn,
         num_workers=num_workers,
         pin_memory=True,
-        drop_last=True,  # Avoid single sample batch during training
+        drop_last=True,
         persistent_workers=True if num_workers > 0 else False,
         prefetch_factor=2 if num_workers > 0 else None
     )
@@ -83,12 +83,15 @@ def main():
 
     os.makedirs("weights", exist_ok=True)
     
+    best_val_loss = float('inf')
+    best_checkpoint_path = "weights/mono3d_best.pth"
+    latest_checkpoint_path = "weights/mono3d_phase4_latest.pth"
+
     print("\n" + "-" * 65, flush=True)
     print(f"  STARTING MODEL TRAINING PIPELINE ({epochs} EPOCHS)", flush=True)
     print("-" * 65, flush=True)
 
     for epoch in range(1, epochs + 1):
-        # 1. Training Phase
         model.train()
         train_loss = 0.0
         epoch_start = time.time()
@@ -118,7 +121,6 @@ def main():
 
         avg_train_loss = train_loss / max(len(train_loader), 1)
 
-        # 2. Validation Phase (Explicitly set model.eval())
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
@@ -132,12 +134,19 @@ def main():
         avg_val_loss = val_loss / max(len(val_loader), 1)
         epoch_time = time.time() - epoch_start
 
-        print(f" [SUMMARY] Epoch {epoch:02d}/{epochs:02d} Completed in {epoch_time:.1f}s -> Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}", flush=True)
+        # Save Best Model Checkpoint
+        saved_best_tag = ""
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            torch.save(model.state_dict(), best_checkpoint_path)
+            saved_best_tag = f" -> [SAVED BEST: {best_checkpoint_path}]"
+
+        print(f" [SUMMARY] Epoch {epoch:02d}/{epochs:02d} Completed in {epoch_time:.1f}s -> Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}{saved_best_tag}", flush=True)
         print("-" * 65, flush=True)
 
-    checkpoint_path = "weights/mono3d_phase4_latest.pth"
-    torch.save(model.state_dict(), checkpoint_path)
-    print(f"\n[SUCCESS] Model Checkpoint saved at '{checkpoint_path}'.", flush=True)
+    torch.save(model.state_dict(), latest_checkpoint_path)
+    print(f"\n[SUCCESS] Final Checkpoint saved at '{latest_checkpoint_path}'.", flush=True)
+    print(f"[SUCCESS] Best Checkpoint saved at '{best_checkpoint_path}' (Val Loss: {best_val_loss:.4f}).", flush=True)
 
 if __name__ == "__main__":
     main()

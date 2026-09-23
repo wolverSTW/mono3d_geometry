@@ -178,3 +178,7 @@
 
 ### Enabled Dynamic Multi-Task Loss Computation
 - Updated `losses/loss3d.py` to calculate real feature loss and dynamic gradients across network predictions instead of a constant float value.
+
+### Fixed Loss Autograd Graph and Added Best Model Saving Logic
+- Updated `losses/loss3d.py` to preserve the PyTorch computation graph, preventing `RuntimeError: element 0 of tensors does not require grad`.
+- Integrated `mono3d_best.pth` checkpoint saving in `train.py` based on minimum validation loss evaluation.
