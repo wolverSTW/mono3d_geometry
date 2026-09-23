@@ -9,7 +9,6 @@ from models.mono3d_network import Mono3DNetwork
 from losses.loss3d import MultiTaskLoss3D
 
 def collate_fn(batch):
-    """ Custom collate function to handle variable number of label annotations per image """
     images = torch.stack([item['image'] for item in batch])
     calib_p2 = torch.stack([item['calib_p2'] for item in batch])
     labels = [item['labels'] for item in batch]
@@ -25,9 +24,8 @@ def collate_fn(batch):
     }
 
 def main():
-    print("=== [PHASE 4] Starting Monocular 3D Detection Training Pipeline ===")
+    print("=== [PHASE 4] Starting Config-Driven Mono3D Training ===")
     
-    # 1. Load Configuration
     config_path = "configs/mono3d_config.yaml"
     config = {}
     if os.path.exists(config_path):
@@ -42,26 +40,20 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[INFO] Using Device: {device}")
-    print(f"[CONFIG] Epochs: {epochs} | Batch Size: {batch_size} | Learning Rate: {lr}")
 
-    # 2. Datasets and DataLoaders
     train_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="train", augment=True)
     val_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="val", augment=False)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 
-    print(f"[DATA] Train Samples: {len(train_dataset)} | Val Samples: {len(val_dataset)}")
-
-    # 3. Model, Loss Function, Optimizer
-    num_classes = config.get('model', {}).get('num_classes', 5)
-    model = Mono3DNetwork(num_classes=num_classes).to(device)
-    criterion = MultiTaskLoss3D(num_classes=num_classes).to(device)
+    # Config-driven Model initialization
+    model = Mono3DNetwork(config=config).to(device)
+    criterion = MultiTaskLoss3D(num_classes=config.get('model', {}).get('num_classes', 5)).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     os.makedirs("weights", exist_ok=True)
 
-    # 4. Training Loop
     for epoch in range(1, epochs + 1):
         model.train()
         train_loss = 0.0
@@ -82,7 +74,6 @@ def main():
 
         avg_train_loss = train_loss / max(len(train_loader), 1)
 
-        # Validation Phase
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
@@ -97,10 +88,9 @@ def main():
 
         print(f"Epoch [{epoch}/{epochs}] - Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
 
-    # Save Checkpoint
     checkpoint_path = "weights/mono3d_phase4_latest.pth"
     torch.save(model.state_dict(), checkpoint_path)
-    print(f"[SUCCESS] Model Checkpoint successfully saved at '{checkpoint_path}'.")
+    print(f"[SUCCESS] Model Checkpoint saved at '{checkpoint_path}'.")
 
 if __name__ == "__main__":
     main()

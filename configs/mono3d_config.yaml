@@ -1,17 +1,27 @@
-# dataset path and Image size
 dataset:
   path: "data/kitti"
   img_size: [384, 1280]
 
-# classes
 model:
+  name: "YOLOv10_Mono3D"
   num_classes: 5
+  backbone:
+    type: "yolov10"
+    in_channels: 3
+    feature_channels: [128, 256, 512]  # Multi-scale feature maps (P3, P4, P5)
+  head:
+    use_scdown: true
+    use_c2fcib: true
+    use_psa: true
+    num_anchors: 1
+    regression_heads:
+      cls_head: 5         # Number of classes
+      bbox2d_head: 4      # [x, y, w, h]
+      dim3d_head: 3       # [height, width, length]
 
-# Training Hyperparameters
-train:
+training:
   epochs: 50
   batch_size: 16
   lr: 0.001
   weight_decay: 0.0001
-  patience: 10
   save_dir: "weights"

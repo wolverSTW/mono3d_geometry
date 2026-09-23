@@ -101,3 +101,6 @@
 ### Configuration Refactoring
 - Decoupled training hyperparameters (Epochs, Batch Size, LR) from `train.py` into `configs/mono3d_config.yaml`.
 - Set full GPU training defaults (Epochs: 50, Batch Size: 16).
+
+### Config-driven Model Architecture Update
+- Refactored `models/mono3d_network.py` and `configs/mono3d_config.yaml` to configure backbone feature channels, head modules (SCDown, C2fCIB, PSA), and regression heads via YAML.
