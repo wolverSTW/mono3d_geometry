@@ -11,14 +11,24 @@ class KITTIDataset(Dataset):
         self.split = split
         self.augment = augment
         self.config = config or {}
-        self.img_size = img_size  # (height, width) target size
+        self.img_size = img_size
 
         split_file = os.path.join(self.data_dir, f"{split}.txt")
         if os.path.exists(split_file):
             with open(split_file, 'r') as f:
                 self.file_ids = [line.strip() for line in f.readlines() if line.strip()]
         else:
-            self.file_ids = [f"{i:06d}" for i in range(10)]
+            # Check training folder directly if split text file is missing
+            train_img_dir = os.path.join(self.data_dir, "training", "image_2")
+            if os.path.exists(train_img_dir):
+                all_files = sorted(os.listdir(train_img_dir))
+                all_ids = [os.path.splitext(f)[0] for f in all_files if f.endswith(('.png', '.jpg'))]
+                if split == "val":
+                    self.file_ids = all_ids[::5] # Use 20% for validation
+                else:
+                    self.file_ids = [i for idx, i in enumerate(all_ids) if idx % 5 != 0]
+            else:
+                self.file_ids = [f"{i:06d}" for i in range(10)]
 
         subfolder = "testing" if split == "test" else "training"
         self.base_dir = os.path.join(self.data_dir, subfolder)
@@ -47,8 +57,6 @@ class KITTIDataset(Dataset):
         else:
             image = Image.open(img_path).convert('RGB')
             w, h = image.size
-            
-            # Resize image to target fixed size for batching
             image = image.resize((self.img_size[1], self.img_size[0]), Image.BILINEAR)
             image_tensor = TF.to_tensor(image)
 
