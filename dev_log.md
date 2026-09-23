@@ -25,3 +25,8 @@
 - **Ablation Strategy**:
   - Test 1: Pure Backbone vs Multi-scale FPN.
   - Test 2: Standard L1 Depth Loss vs Geometry-guided Loss Weighting.
+
+## [Phase 5: Per-Class Evaluation & CSV/Excel Export Integration]
+- **Per-Class Metrics Added**: Enhanced `evaluate.py` to calculate $AP_{3D}$, $AP_{BEV}$, MAE, and RMSE broken down across target classes (`Car`, `Pedestrian`, `Cyclist`, `Truck`, `Bus`).
+- **Summary Row Added**: Computes Mean / Overall performance metrics across all evaluation categories.
+- **Export Capabilities**: Automatically generates and saves structured report files (`eval_results.csv` and `eval_results.xlsx`) into the `evaluation_results/` directory for thesis documentation and comparative plotting.
