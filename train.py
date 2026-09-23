@@ -38,8 +38,10 @@ def main():
         print(f"[CONFIG] Loaded configuration from '{config_path}'.", flush=True)
 
     train_cfg = config.get('training', {})
+    model_cfg = config.get('model', {})
+    head_cfg = model_cfg.get('head', {})
     
-    # Check for override env variable or default to 5 epochs for quick run
+    # Check for override env variable or default from config
     epochs = int(os.environ.get("EPOCHS", train_cfg.get('epochs', 5)))
     batch_size = train_cfg.get('batch_size', 16)
     lr = float(train_cfg.get('lr', 1e-3))
@@ -77,10 +79,18 @@ def main():
 
     print("\n[MODEL] Initializing Mono3D Model Architecture & Loss Heads...", flush=True)
     model = Mono3DNetwork(config=config).to(device)
-    criterion = MultiTaskLoss3D(num_classes=config.get('model', {}).get('num_classes', 5)).to(device)
+    
+    # Updated MultiTaskLoss3D initialization with configs
+    loss_weights = train_cfg.get('loss_weights', None)
+    criterion = MultiTaskLoss3D(
+        loss_weights=loss_weights,
+        num_classes=model_cfg.get('num_classes', 5),
+        num_bins=head_cfg.get('num_bins', 12)
+    ).to(device)
+    
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     
-    # Cosine Annealing Learning Rate Scheduler for smooth convergence
+    # Cosine Annealing Learning Rate Scheduler
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     os.makedirs("weights", exist_ok=True)
@@ -112,6 +122,10 @@ def main():
             images = batch['image'].to(device, non_blocking=True)
             targets = batch['labels']
 
+            # Move target tensors to GPU/Device if applicable
+            if isinstance(targets, dict):
+                targets = {k: v.to(device, non_blocking=True) if isinstance(v, torch.Tensor) else v for k, v in targets.items()}
+
             optimizer.zero_grad()
             predictions = model(images)
             loss_dict = criterion(predictions, targets)
@@ -121,7 +135,10 @@ def main():
             optimizer.step()
 
             train_loss += loss.item()
-            pbar.set_postfix({'loss': f"{loss.item():.4f}", 'lr': f"{current_lr:.6f}"})
+            
+            # Detailed loss tracking in progress bar
+            depth_l = loss_dict.get('loss_depth', torch.tensor(0.0)).item()
+            pbar.set_postfix({'loss': f"{loss.item():.4f}", 'depth_l': f"{depth_l:.4f}", 'lr': f"{current_lr:.6f}"})
 
         avg_train_loss = train_loss / max(len(train_loader), 1)
 
@@ -132,6 +149,9 @@ def main():
             for batch in val_loader:
                 images = batch['image'].to(device, non_blocking=True)
                 targets = batch['labels']
+                if isinstance(targets, dict):
+                    targets = {k: v.to(device, non_blocking=True) if isinstance(v, torch.Tensor) else v for k, v in targets.items()}
+                
                 predictions = model(images)
                 loss_dict = criterion(predictions, targets)
                 val_loss += loss_dict['loss'].item()
