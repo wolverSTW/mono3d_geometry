@@ -3,23 +3,23 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
+import torchvision.transforms.functional as TF
 
 class KITTIDataset(Dataset):
-    def __init__(self, data_dir="data/kitti", config=None, split="train", augment=False):
+    def __init__(self, data_dir="data/kitti", config=None, split="train", augment=False, img_size=(384, 1248)):
         self.data_dir = data_dir
         self.split = split
         self.augment = augment
         self.config = config or {}
+        self.img_size = img_size  # (height, width) target size
 
         split_file = os.path.join(self.data_dir, f"{split}.txt")
         if os.path.exists(split_file):
             with open(split_file, 'r') as f:
                 self.file_ids = [line.strip() for line in f.readlines() if line.strip()]
         else:
-            # Fallback for local testing without split files
             self.file_ids = [f"{i:06d}" for i in range(10)]
 
-        # Determine target directory: 'training' or 'testing'
         subfolder = "testing" if split == "test" else "training"
         self.base_dir = os.path.join(self.data_dir, subfolder)
 
@@ -33,7 +33,6 @@ class KITTIDataset(Dataset):
     def __getitem__(self, idx):
         file_id = self.file_ids[idx]
         
-        # Look for existing image file
         img_path = None
         for ext in ['.png', '.PNG', '.jpg', '.JPG', '.jpeg']:
             possible_path = os.path.join(self.img_dir, f"{file_id}{ext}")
@@ -41,15 +40,16 @@ class KITTIDataset(Dataset):
                 img_path = possible_path
                 break
 
-        # If running locally without downloaded dataset, return Mock Tensor
         if img_path is None or not os.path.exists(img_path):
-            image_tensor = torch.zeros((3, 375, 1242), dtype=torch.float32)
-            h, w = 375, 1242
+            image_tensor = torch.zeros((3, self.img_size[0], self.img_size[1]), dtype=torch.float32)
+            h, w = self.img_size
             labels = []
         else:
             image = Image.open(img_path).convert('RGB')
             w, h = image.size
-            import torchvision.transforms.functional as TF
+            
+            # Resize image to target fixed size for batching
+            image = image.resize((self.img_size[1], self.img_size[0]), Image.BILINEAR)
             image_tensor = TF.to_tensor(image)
 
             labels = []
