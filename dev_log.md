@@ -124,3 +124,6 @@
 
 ### Backbone Init Parameter Support
 - Updated `YOLOv10Backbone.__init__()` to accept `in_channels` and extra `**kwargs` passed by `Mono3DNetwork`.
+
+### Head3D Init Parameter Support
+- Updated `Head3D.__init__()` to accept `use_scdown` and additional `**kwargs` passed by `Mono3DNetwork`.

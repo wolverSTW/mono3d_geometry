@@ -6,10 +6,11 @@ class Head3D(nn.Module):
     3D Object Detection Head for Multi-Scale Features (P3, P4, P5).
     Predicts: Class Logits, 2D BBox Offset, 3D Dimensions (Residual), Orientation (Multi-bin Alpha).
     """
-    def __init__(self, num_classes=5, num_bins=4, in_channels=[256, 512, 1024]):
+    def __init__(self, num_classes=5, num_bins=4, in_channels=[256, 512, 1024], use_scdown=False, **kwargs):
         super().__init__()
         self.num_classes = num_classes
         self.num_bins = num_bins
+        self.use_scdown = use_scdown
         
         self.shared_convs = nn.ModuleList([
             nn.Sequential(
