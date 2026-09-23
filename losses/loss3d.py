@@ -3,17 +3,25 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class GeometricUncertaintyDepthLoss(nn.Module):
-    def __init__(self):
+    """
+    Computes Geometric Uncertainty Depth Loss with variance clamping to avoid negative loss explosion.
+    pred_depth shape: [B, 2, H, W] where channel 0 = depth_val, channel 1 = log_variance (log(sigma^2))
+    """
+    def __init__(self, log_var_min=-3.0, log_var_max=5.0):
         super().__init__()
+        self.log_var_min = log_var_min
+        self.log_var_max = log_var_max
 
     def forward(self, pred_depth, target_depth):
         depth_val = pred_depth[:, 0:1, :, :]
-        log_var = pred_depth[:, 1:2, :, :]
+        # Variance မပြိုလဲစေရန် Clamp / Bounding ပြုလုပ်ခြင်း
+        log_var = torch.clamp(pred_depth[:, 1:2, :, :], min=self.log_var_min, max=self.log_var_max)
 
         if depth_val.shape[2:] != target_depth.shape[2:]:
             target_depth = F.interpolate(target_depth, size=depth_val.shape[2:], mode='nearest')
 
         precision = torch.exp(-log_var)
+        # Laplician / Heteroscedastic Uncertainty Depth Loss
         loss = precision * torch.abs(depth_val - target_depth) + log_var
         return loss.mean()
 
@@ -33,7 +41,6 @@ class MultiTaskLoss3D(nn.Module):
         self.depth_loss_fn = GeometricUncertaintyDepthLoss()
 
     def _extract_target_tensor(self, targets, key, default_shape, device):
-        """Helper to safely extract or create target tensors whether targets is a dict or list of dicts"""
         if isinstance(targets, dict) and key in targets:
             return targets[key]
         elif isinstance(targets, (list, tuple)) and len(targets) > 0:
@@ -58,33 +65,28 @@ class MultiTaskLoss3D(nn.Module):
         for pred in scale_preds:
             B = pred['cls'].shape[0] if 'cls' in pred else 1
 
-            # 1. Classification
             if 'cls' in pred:
                 tgt_cls = self._extract_target_tensor(targets, 'cls', pred['cls'].shape, device)
                 if tgt_cls.shape != pred['cls'].shape:
                     tgt_cls = F.interpolate(tgt_cls, size=pred['cls'].shape[2:], mode='nearest') if tgt_cls.dim() == 4 else torch.zeros_like(pred['cls'])
                 total_cls = total_cls + self.cls_loss_fn(pred['cls'], tgt_cls)
 
-            # 2. 2D BBox
             if 'bbox2d' in pred:
                 tgt_b2d = self._extract_target_tensor(targets, 'bbox2d', pred['bbox2d'].shape, device)
                 if tgt_b2d.shape != pred['bbox2d'].shape:
                     tgt_b2d = F.interpolate(tgt_b2d, size=pred['bbox2d'].shape[2:], mode='nearest') if tgt_b2d.dim() == 4 else torch.zeros_like(pred['bbox2d'])
                 total_b2d = total_b2d + self.reg_loss_fn(pred['bbox2d'], tgt_b2d)
 
-            # 3. 3D Dimensions
             if 'dim3d' in pred:
                 tgt_d3d = self._extract_target_tensor(targets, 'dim3d', pred['dim3d'].shape, device)
                 if tgt_d3d.shape != pred['dim3d'].shape:
                     tgt_d3d = F.interpolate(tgt_d3d, size=pred['dim3d'].shape[2:], mode='nearest') if tgt_d3d.dim() == 4 else torch.zeros_like(pred['dim3d'])
                 total_d3d = total_d3d + self.reg_loss_fn(pred['dim3d'], tgt_d3d)
 
-            # 4. Depth & Uncertainty
             if 'depth' in pred:
                 tgt_dep = self._extract_target_tensor(targets, 'depth', (B, 1, pred['depth'].shape[2], pred['depth'].shape[3]), device)
                 total_dep = total_dep + self.depth_loss_fn(pred['depth'], tgt_dep)
 
-            # 5. Orientation
             if 'orient' in pred:
                 tgt_ori = self._extract_target_tensor(targets, 'orient', pred['orient'].shape, device)
                 if tgt_ori.shape != pred['orient'].shape:
