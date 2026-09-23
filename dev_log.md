@@ -134,3 +134,8 @@
 ### Fixed Feature Channels Mismatch in Mono3DNetwork
 - Dynamically fetch `out_channels` from `YOLOv10Backbone` (`[256, 512, 1024]`) instead of hardcoded `[128, 256, 512]`.
 - Updated `Mono3DNetwork` to pass correct feature channels to `Mono3DHead`.
+
+### Enhanced Real-Time Training Progress Tracking
+- Preserved original `train.py` logic, `MultiTaskLoss3D`, and configuration.
+- Added `tqdm` progress bars for real-time batch-level training and validation updates.
+- Added `flush=True` to stdout prints to bypass terminal buffering delays.
