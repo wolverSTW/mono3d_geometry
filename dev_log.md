@@ -49,3 +49,4 @@
 - **Complete Benchmark Alignment**: Evaluation pipeline now tracks `Params (M)`, `GFLOPs`, `Latency (ms)`, and `FPS` along with 3D Detection & BEV Accuracy metrics.
 - 2026-09-24 01:13: Updated mono3d_config.yaml with lightweight setup (depth_gate, uncertainty depth_head: 2, num_bins: 12)
 - 2026-09-24 01:15: Updated models/head3d.py with LightweightDepthGate and Uncertainty depth head
+- 2026-09-24 01:17: Updated models/backbone.py with pretrained weight loader for YOLOv10

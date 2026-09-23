@@ -75,10 +75,11 @@ class PSA(nn.Module):
 
 class YOLOv10Backbone(nn.Module):
     """
-    YOLOv10 Multi-Scale Backbone & Neck Extractor.
+    YOLOv10 Multi-Scale Lightweight Backbone & Neck Extractor.
     Extracts P3 (stride 8), P4 (stride 16), P5 (stride 32) features.
+    Supports Pre-trained Weight Loading.
     """
-    def __init__(self, in_channels=3, **kwargs):
+    def __init__(self, in_channels=3, weights_path=None, **kwargs):
         super().__init__()
         # Backbone Layers
         self.p1 = Conv(in_channels, 64, 3, 2)
@@ -87,6 +88,25 @@ class YOLOv10Backbone(nn.Module):
         self.p4 = nn.Sequential(SCDown(256, 512), C2fCIB(512, 512, n=2))
         self.p5 = nn.Sequential(SCDown(512, 1024), C2fCIB(1024, 1024, n=1), PSA(1024))
         self.out_channels = [256, 512, 1024]
+
+        if weights_path:
+            self.load_pretrained_weights(weights_path)
+
+    def load_pretrained_weights(self, weights_path):
+        """ Loads Pre-trained COCO/YOLOv10 weights safely """
+        try:
+            state_dict = torch.load(weights_path, map_location='cpu')
+            if 'model' in state_dict:
+                state_dict = state_dict['model'].float().state_dict()
+            
+            # Load only matching backbone keys
+            model_dict = self.state_dict()
+            pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict and v.shape == model_dict[k].shape}
+            model_dict.update(pretrained_dict)
+            self.load_state_dict(model_dict)
+            print(f"Successfully loaded {len(pretrained_dict)} layers from {weights_path}")
+        except Exception as e:
+            print(f"Warning: Could not load pre-trained weights from {weights_path}. Error: {e}")
 
     def forward(self, x):
         x1 = self.p1(x)
