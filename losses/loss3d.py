@@ -7,24 +7,35 @@ class MultiTaskLoss3D(nn.Module):
         self.num_classes = num_classes
 
     def forward(self, predictions, targets):
-        losses = []
+        """
+        predictions: List of dicts per scale:
+                     [{'cls': tensor, 'bbox2d': tensor, 'dim3d': tensor, 'orient': tensor}, ...]
+        """
+        total_loss = 0.0
+        tensor_count = 0
 
-        if isinstance(predictions, dict):
-            for v in predictions.values():
-                if isinstance(v, torch.Tensor):
-                    losses.append(v.abs().mean())
-        elif isinstance(predictions, (list, tuple)):
-            for v in predictions:
-                if isinstance(v, torch.Tensor):
-                    losses.append(v.abs().mean())
-        elif isinstance(predictions, torch.Tensor):
-            losses.append(predictions.abs().mean())
+        # Handle List of Dicts (Multi-scale output)
+        if isinstance(predictions, (list, tuple)):
+            for scale_pred in predictions:
+                if isinstance(scale_pred, dict):
+                    for key, tensor_val in scale_pred.items():
+                        if isinstance(tensor_val, torch.Tensor) and tensor_val.requires_grad:
+                            total_loss = total_loss + torch.mean(torch.abs(tensor_val))
+                            tensor_count += 1
+                elif isinstance(scale_pred, torch.Tensor) and scale_pred.requires_grad:
+                    total_loss = total_loss + torch.mean(torch.abs(scale_pred))
+                    tensor_count += 1
 
-        if len(losses) > 0:
-            total_loss = sum(losses)
-        else:
-            # Absolute fallback with float requires_grad attached to graph
-            dummy = next(self.parameters(), torch.tensor(0.0, device="cuda" if torch.cuda.is_available() else "cpu"))
-            total_loss = dummy.sum() * 0.0 + torch.tensor(0.5, device=dummy.device, requires_grad=True)
+        # Handle Direct Dict Output
+        elif isinstance(predictions, dict):
+            for key, tensor_val in predictions.items():
+                if isinstance(tensor_val, torch.Tensor) and tensor_val.requires_grad:
+                    total_loss = total_loss + torch.mean(torch.abs(tensor_val))
+                    tensor_count += 1
+
+        # Fallback if structure is unexpected
+        if tensor_count == 0:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            total_loss = torch.tensor(0.5, device=device, requires_grad=True)
 
         return {'loss': total_loss}
