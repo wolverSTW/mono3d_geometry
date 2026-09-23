@@ -20,13 +20,12 @@ class Mono3DNetwork(nn.Module):
 
         self.num_classes = model_cfg.get('num_classes', num_classes)
         in_channels = backbone_cfg.get('in_channels', 3)
-        self.feature_channels = backbone_cfg.get('feature_channels', [128, 256, 512])
-
+        
         # 1. Config-driven Backbone
-        self.backbone = Mono3DBackbone(
-            in_channels=in_channels, 
-            feature_channels=self.feature_channels
-        )
+        self.backbone = Mono3DBackbone(in_channels=in_channels)
+
+        # Backbone မှ ထွက်လာသော out_channels [256, 512, 1024] ကို dynamic ယူရန်
+        self.feature_channels = getattr(self.backbone, 'out_channels', backbone_cfg.get('feature_channels', [256, 512, 1024]))
 
         # 2. Config-driven Multi-scale 3D Head
         self.head = Mono3DHead(

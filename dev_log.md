@@ -130,3 +130,7 @@
 
 ### Fixed Head Channel Mismatch Error
 - Explicitly ensured `Head3D` receives `in_channels=[256, 512, 1024]` matching `YOLOv10Backbone` output dimensions.
+
+### Fixed Feature Channels Mismatch in Mono3DNetwork
+- Dynamically fetch `out_channels` from `YOLOv10Backbone` (`[256, 512, 1024]`) instead of hardcoded `[128, 256, 512]`.
+- Updated `Mono3DNetwork` to pass correct feature channels to `Mono3DHead`.
