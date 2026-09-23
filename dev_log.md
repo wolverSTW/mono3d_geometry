@@ -113,3 +113,7 @@
 
 ### Logger Bug Fix
 - Updated `utils/logger.py` to auto-create missing subdirectories when custom output log paths are provided (fixing `FileNotFoundError` in EDA).
+
+### Backbone Custom Architecture Restoration
+- Restored original YOLOv10 Backbone architecture (`SCDown`, `CIB`, `C2fCIB`, `PSA`).
+- Added `Mono3DBackbone = YOLOv10Backbone` alias to maintain compatibility with `Mono3DNetwork`.

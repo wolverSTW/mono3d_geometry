@@ -86,6 +86,7 @@ class YOLOv10Backbone(nn.Module):
         self.p3 = nn.Sequential(Conv(128, 256, 3, 2), C2fCIB(256, 256, n=2))
         self.p4 = nn.Sequential(SCDown(256, 512), C2fCIB(512, 512, n=2))
         self.p5 = nn.Sequential(SCDown(512, 1024), C2fCIB(1024, 1024, n=1), PSA(1024))
+        self.out_channels = [256, 512, 1024]
 
     def forward(self, x):
         x1 = self.p1(x)
@@ -94,3 +95,6 @@ class YOLOv10Backbone(nn.Module):
         p4 = self.p4(p3)  # Stride 16 [B, 512, H/16, W/16]
         p5 = self.p5(p4)  # Stride 32 [B, 1024, H/32, W/32]
         return [p3, p4, p5]
+
+# Alias to support 'Mono3DBackbone' imports in Mono3DNetwork
+Mono3DBackbone = YOLOv10Backbone
