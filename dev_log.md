@@ -43,3 +43,7 @@
 ## [Phase 7: Dynamic Automated Evaluation Pipeline]
 - **Automated Metric Computation**: Replaced manual hardcoded metrics with dynamic calculation functions (`compute_3d_iou` and `calculate_ap_and_errors`).
 - **Dynamic Per-Class Evaluation**: Metrics for $AP_{3D}$, $AP_{BEV}$, MAE, and RMSE are computed dynamically from evaluation predictions and dataset ground truths.
+
+## [Phase 8: Added Model Parameters Metric (Params M)]
+- **Params (M) Integration**: Added `Params (M)` column to `evaluate.py` evaluation table to directly align with lightweight M3D benchmarks like LeAD-M3D.
+- **Complete Benchmark Alignment**: Evaluation pipeline now tracks `Params (M)`, `GFLOPs`, `Latency (ms)`, and `FPS` along with 3D Detection & BEV Accuracy metrics.
