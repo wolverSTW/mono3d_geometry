@@ -51,3 +51,4 @@
 - 2026-09-24 01:15: Updated models/head3d.py with LightweightDepthGate and Uncertainty depth head
 - 2026-09-24 01:17: Updated models/backbone.py with pretrained weight loader for YOLOv10
 - 2026-09-24 01:18: Updated models/mono3d_network.py to pass depth_gate and num_bins config options
+- 2026-09-24 01:19: Implemented GeometricUncertaintyDepthLoss and MultiTaskLoss3D
