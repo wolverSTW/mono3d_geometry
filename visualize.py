@@ -54,32 +54,29 @@ def draw_projected_box3d(image, corners_3d, P2, color=(0, 255, 0), thickness=2):
         
     return image
 
-def safe_float(val, default=0.0):
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        return default
-
-def extract_3d_box_params(lbl):
+def load_kitti_label_file(label_path):
     """
-    Safely extracts (h, w, l, x, y, z, ry) regardless of label structure.
+    Directly reads original KITTI txt label file for verification.
+    Format: Type Truncated Occluded Alpha 2D_Box(4) 3D_Dimensions(h,w,l) 3D_Location(x,y,z) Rotation_y
     """
-    if isinstance(lbl, dict):
-        h, w, l = lbl.get('dimensions', (1.5, 1.6, 3.8))
-        x, y, z = lbl.get('location', (0, 0, 10))
-        ry = lbl.get('rotation_y', 0.0)
-        return h, w, l, x, y, z, ry
-    
-    if isinstance(lbl, (list, tuple, np.ndarray, torch.Tensor)):
-        # Filter out non-numeric strings if any exist
-        numeric_vals = [safe_float(v, None) for v in lbl]
-        numeric_vals = [v for v in numeric_vals if v is not None]
+    boxes = []
+    if not os.path.exists(label_path):
+        return boxes
         
-        if len(numeric_vals) >= 7:
-            # Assuming standard 7 3D parameters: [h, w, l, x, y, z, ry]
-            return numeric_vals[0], numeric_vals[1], numeric_vals[2], numeric_vals[3], numeric_vals[4], numeric_vals[5], numeric_vals[6]
+    with open(label_path, 'r') as f:
+        lines = f.readlines()
+        
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) < 15 or parts[0] == 'DontCare':
+            continue
             
-    return None
+        h, w, l = float(parts[8]), float(parts[9]), float(parts[10])
+        x, y, z = float(parts[11]), float(parts[12]), float(parts[13])
+        ry = float(parts[14])
+        boxes.append((h, w, l, x, y, z, ry))
+        
+    return boxes
 
 def main():
     print("=" * 70)
@@ -123,17 +120,15 @@ def main():
             print(f" -> Skipping {file_id}: Image not found at {img_path}")
             continue
 
-        labels = sample['labels']
-        boxes_drawn = 0
+        # Load boxes directly from raw label_2 txt file to guarantee Ground Truth drawing
+        txt_label_path = os.path.join("data/kitti/training/label_2", f"{file_id}.txt")
+        gt_boxes = load_kitti_label_file(txt_label_path)
 
-        if isinstance(labels, (list, tuple, torch.Tensor, np.ndarray)):
-            for lbl in labels:
-                params = extract_3d_box_params(lbl)
-                if params is not None:
-                    h, w, l, x, y, z, ry = params
-                    corners_3d = compute_3d_box_cam2(h, w, l, x, y, z, ry)
-                    vis_img = draw_projected_box3d(vis_img, corners_3d, P2, color=(0, 255, 0), thickness=2)
-                    boxes_drawn += 1
+        boxes_drawn = 0
+        for (h, w, l, x, y, z, ry) in gt_boxes:
+            corners_3d = compute_3d_box_cam2(h, w, l, x, y, z, ry)
+            vis_img = draw_projected_box3d(vis_img, corners_3d, P2, color=(0, 255, 0), thickness=2)
+            boxes_drawn += 1
 
         out_file = os.path.join(output_dir, f"vis_{file_id}.png")
         cv2.imwrite(out_file, vis_img)
