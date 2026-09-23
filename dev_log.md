@@ -169,3 +169,6 @@
 ### Fixed Missing Evaluation Script and Loss Calculation
 - Created `val.py` for Step 7 post-training validation and checkpoint assessment.
 - Fixed zero-loss bug in `losses/loss3d.py` to ensure proper gradient computation and valid loss metrics.
+
+### Fixed Loss Computation Input Handling
+- Updated `losses/loss3d.py` to handle predictions provided as `list`, `tuple`, `dict`, or single `Tensor` without raising `AttributeError`.
