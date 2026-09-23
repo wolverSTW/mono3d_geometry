@@ -121,3 +121,6 @@
 ### Multi-scale Head Restored
 - Restored original `Head3D` multi-scale prediction architecture with multi-bin orientation support.
 - Created `Mono3DHead = Head3D` alias to ensure full compatibility with `Mono3DNetwork`.
+
+### Backbone Init Parameter Support
+- Updated `YOLOv10Backbone.__init__()` to accept `in_channels` and extra `**kwargs` passed by `Mono3DNetwork`.

@@ -78,10 +78,10 @@ class YOLOv10Backbone(nn.Module):
     YOLOv10 Multi-Scale Backbone & Neck Extractor.
     Extracts P3 (stride 8), P4 (stride 16), P5 (stride 32) features.
     """
-    def __init__(self):
+    def __init__(self, in_channels=3, **kwargs):
         super().__init__()
         # Backbone Layers
-        self.p1 = Conv(3, 64, 3, 2)
+        self.p1 = Conv(in_channels, 64, 3, 2)
         self.p2 = nn.Sequential(Conv(64, 128, 3, 2), C2fCIB(128, 128, n=1))
         self.p3 = nn.Sequential(Conv(128, 256, 3, 2), C2fCIB(256, 256, n=2))
         self.p4 = nn.Sequential(SCDown(256, 512), C2fCIB(512, 512, n=2))
