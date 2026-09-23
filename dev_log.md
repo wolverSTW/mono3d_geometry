@@ -161,3 +161,7 @@
 ### Consolidated Root Execution Architecture
 - Moved `train.py` exclusively to the root directory and deleted redundant `scripts/train.py`.
 - Updated `run_all.sh` to execute Root `train.py` directly.
+
+### Fixed BatchNorm Single-Sample Batch Bug
+- Enabled `drop_last=True` on `train_loader` to prevent `BatchNorm2d` errors when the last training batch contains only 1 sample (`torch.Size([1, C, H, W])`).
+- Ensured strict switching to `model.eval()` mode during evaluation.

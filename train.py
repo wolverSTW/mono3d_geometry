@@ -52,7 +52,6 @@ def main():
     val_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="val", augment=False)
     print(f"[DATASET] Loaded {len(train_dataset)} Train samples, {len(val_dataset)} Val samples ({time.time()-t0:.2f}s).", flush=True)
 
-    # Multi-worker Data prefetching for RTX 4090 Max Throughput
     num_workers = min(8, os.cpu_count() or 4)
     train_loader = DataLoader(
         train_dataset, 
@@ -61,6 +60,7 @@ def main():
         collate_fn=collate_fn,
         num_workers=num_workers,
         pin_memory=True,
+        drop_last=True,  # Avoid single sample batch during training
         persistent_workers=True if num_workers > 0 else False,
         prefetch_factor=2 if num_workers > 0 else None
     )
@@ -71,6 +71,7 @@ def main():
         collate_fn=collate_fn,
         num_workers=num_workers,
         pin_memory=True,
+        drop_last=False,
         persistent_workers=True if num_workers > 0 else False
     )
     print(f"[PIPELINE] DataLoaders initialized with Batch Size={batch_size}, Workers={num_workers}.", flush=True)
@@ -87,6 +88,7 @@ def main():
     print("-" * 65, flush=True)
 
     for epoch in range(1, epochs + 1):
+        # 1. Training Phase
         model.train()
         train_loss = 0.0
         epoch_start = time.time()
@@ -116,6 +118,7 @@ def main():
 
         avg_train_loss = train_loss / max(len(train_loader), 1)
 
+        # 2. Validation Phase (Explicitly set model.eval())
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
