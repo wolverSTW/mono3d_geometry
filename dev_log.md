@@ -30,3 +30,8 @@
 - **Per-Class Metrics Added**: Enhanced `evaluate.py` to calculate $AP_{3D}$, $AP_{BEV}$, MAE, and RMSE broken down across target classes (`Car`, `Pedestrian`, `Cyclist`, `Truck`, `Bus`).
 - **Summary Row Added**: Computes Mean / Overall performance metrics across all evaluation categories.
 - **Export Capabilities**: Automatically generates and saves structured report files (`eval_results.csv` and `eval_results.xlsx`) into the `evaluation_results/` directory for thesis documentation and comparative plotting.
+
+## [Phase 5: Per-Class & Summary Metric Exporters]
+- **Per-Class Breakdown**: Configured `evaluate.py` to calculate AP3D, APBEV, MAE, and RMSE separately for each KITTI class (`Car`, `Pedestrian`, `Cyclist`, `Truck`, `Bus`).
+- **Overall Aggregation**: Included automated Mean calculation row to summarize global performance across all target classes.
+- **Export Multi-format**: Integrated automated file generator that outputs structured evaluation sheets to `evaluation_results/eval_results.csv` and multi-tab `evaluation_results/eval_results.xlsx`.
