@@ -104,3 +104,6 @@
 
 ### Config-driven Model Architecture Update
 - Refactored `models/mono3d_network.py` and `configs/mono3d_config.yaml` to configure backbone feature channels, head modules (SCDown, C2fCIB, PSA), and regression heads via YAML.
+
+### EDA Document Generation Refactoring
+- Updated `scripts/eda_kitti.py` to auto-export dataset statistics into CSV (`kitti_objects_summary.csv`), JSON (`class_geometry_stats.json`), and PNG graph charts (`kitti_eda_analysis.png`) in `outputs/eda/`.

@@ -5,7 +5,11 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import glob
+import json
+import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from collections import defaultdict
 from utils.logger import setup_logger
 
@@ -31,79 +35,94 @@ def parse_kitti_label_file(file_path):
             objects.append(obj)
     return objects
 
-def run_comprehensive_eda(data_dir="data/kitti/label_2"):
-    logger = setup_logger(log_filename="eda_report.log")
+def run_comprehensive_eda(data_dir="data/kitti/label_2", output_dir="outputs/eda"):
+    os.makedirs(output_dir, exist_ok=True)
+    logger = setup_logger(log_filename=os.path.join(output_dir, "eda_report.log"))
     logger.info("=== STARTING COMPREHENSIVE KITTI EDA ANALYSIS ===")
 
     label_files = glob.glob(os.path.join(data_dir, "*.txt"))
     if not label_files:
-        logger.error(f"No label files found in '{data_dir}'. Please run create_dummy_data.py or download_kitti.py first.")
+        logger.error(f"No label files found in '{data_dir}'.")
         return
 
     logger.info(f"Total Label Files Analyzed: {len(label_files)}")
 
-    class_counts = defaultdict(int)
-    occlusion_counts = defaultdict(int)
-    truncation_stats = []
-
-    class_dims = defaultdict(list)    # h, w, l
-    class_depths = defaultdict(list)  # z location
-    class_alphas = defaultdict(list)  # observation angle
-
-    total_objects = 0
+    raw_records = []
+    class_dims = defaultdict(list)
+    class_depths = defaultdict(list)
 
     for filepath in label_files:
         objs = parse_kitti_label_file(filepath)
         for obj in objs:
             cls_type = obj['type']
-            class_counts[cls_type] += 1
-            occlusion_counts[obj['occluded']] += 1
-            truncation_stats.append(obj['truncated'])
+            h, w, l = obj['dimensions_3d']
+            x, y, z = obj['location_3d']
+            
+            raw_records.append({
+                'class': cls_type,
+                'truncated': obj['truncated'],
+                'occluded': obj['occluded'],
+                'alpha': obj['alpha'],
+                'height': h,
+                'width': w,
+                'length': l,
+                'depth_z': z
+            })
+            class_dims[cls_type].append([h, w, l])
+            class_depths[cls_type].append(z)
 
-            class_dims[cls_type].append(obj['dimensions_3d'])
-            class_depths[cls_type].append(obj['location_3d'][2])
-            class_alphas[cls_type].append(obj['alpha'])
-            total_objects += 1
+    df = pd.DataFrame(raw_records)
 
-    # 1. OVERALL STATISTICAL REPORT
-    logger.info("\n" + "="*50)
-    logger.info("1. OVERALL DATASET SUMMARY")
-    logger.info("="*50)
-    logger.info(f"Total Annotated Objects: {total_objects}")
-    logger.info("\n--- Class Distribution ---")
-    for cls_name, count in sorted(class_counts.items(), key=lambda x: x[1], reverse=True):
-        percentage = (count / total_objects) * 100
-        logger.info(f"  - {cls_name:<15}: {count:>6} objects ({percentage:>5.2f}%)")
+    # 1. Save Structured CSV Document Report
+    csv_path = os.path.join(output_dir, "kitti_objects_summary.csv")
+    df.to_csv(csv_path, index=False)
+    logger.info(f"[DOC SAVED] Full Objects DataFrame saved to '{csv_path}'.")
 
-    logger.info("\n--- Occlusion Breakdown ---")
-    occlusion_labels = {0: "Fully Visible", 1: "Partly Occluded", 2: "Largely Occluded", 3: "Unknown"}
-    for occ_k, count in occlusion_counts.items():
-        perc = (count / total_objects) * 100
-        logger.info(f"  - {occlusion_labels.get(occ_k, 'Other'):<18}: {count:>6} ({perc:>5.2f}%)")
-
-    # 2. PER-CLASS STATISTICAL ANALYSIS
-    logger.info("\n" + "="*50)
-    logger.info("2. PER-CLASS 3D GEOMETRY STATISTICS")
-    logger.info("="*50)
-
-    for cls_name in sorted(class_counts.keys()):
-        dims = np.array(class_dims[cls_name])
-        depths = np.array(class_depths[cls_name])
+    # 2. Compute Per-Class Aggregated Summary Table & Save JSON Document
+    class_summary = {}
+    for cls_name, dims in class_dims.items():
+        dims_arr = np.array(dims)
+        depths_arr = np.array(class_depths[cls_name])
         
-        logger.info(f"\n[CLASS: {cls_name}] (Count: {class_counts[cls_name]})")
+        mean_h, mean_w, mean_l = np.mean(dims_arr, axis=0)
+        std_h, std_w, std_l = np.std(dims_arr, axis=0)
         
-        mean_h, mean_w, mean_l = np.mean(dims, axis=0)
-        std_h, std_w, std_l = np.std(dims, axis=0)
-        logger.info(f"  3D Dimensions (Height, Width, Length) in meters:")
-        logger.info(f"    - Mean : H={mean_h:.2f}m, W={mean_w:.2f}m, L={mean_l:.2f}m")
-        logger.info(f"    - Std  : H={std_h:.2f}m, W={std_w:.2f}m, L={std_l:.2f}m")
-        
-        mean_z, std_z = np.mean(depths), np.std(depths)
-        min_z, max_z = np.min(depths), np.max(depths)
-        logger.info(f"  Depth Distribution (Z-Distance):")
-        logger.info(f"    - Range: {min_z:.2f}m to {max_z:.2f}m | Mean: {mean_z:.2f}m (±{std_z:.2f}m)")
+        class_summary[cls_name] = {
+            "count": len(dims),
+            "mean_dimensions_hwl": [round(mean_h, 2), round(mean_w, 2), round(mean_l, 2)],
+            "std_dimensions_hwl": [round(std_h, 2), round(std_w, 2), round(std_l, 2)],
+            "mean_depth_z": round(float(np.mean(depths_arr)), 2),
+            "min_depth_z": round(float(np.min(depths_arr)), 2),
+            "max_depth_z": round(float(np.max(depths_arr)), 2)
+        }
 
-    logger.info("\n=== COMPREHENSIVE EDA COMPLETED ===")
+    json_path = os.path.join(output_dir, "class_geometry_stats.json")
+    with open(json_path, 'w') as f:
+        json.dump(class_summary, f, indent=4)
+    logger.info(f"[DOC SAVED] Class Geometry Summary JSON saved to '{json_path}'.")
+
+    # 3. Generate and Save Graphical EDA Plots Document (PNG)
+    plt.figure(figsize=(12, 5))
+    
+    # Plot A: Class Distribution
+    plt.subplot(1, 2, 1)
+    sns.countplot(data=df, x='class', palette='viridis')
+    plt.title("Class Distribution")
+    plt.xticks(rotation=45)
+
+    # Plot B: Depth Distribution per Class
+    plt.subplot(1, 2, 2)
+    sns.boxplot(data=df, x='class', y='depth_z', palette='magma')
+    plt.title("Depth (Z) Distribution by Class")
+    plt.xticks(rotation=45)
+
+    plt.tight_layout()
+    plot_path = os.path.join(output_dir, "kitti_eda_analysis.png")
+    plt.savefig(plot_path)
+    plt.close()
+    logger.info(f"[PLOT SAVED] EDA Analysis Chart saved to '{plot_path}'.")
+
+    logger.info("=== COMPREHENSIVE EDA COMPLETED AND DOCUMENTS STORED ===")
 
 if __name__ == "__main__":
     run_comprehensive_eda()
