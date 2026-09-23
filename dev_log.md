@@ -54,3 +54,4 @@
 - 2026-09-24 01:19: Implemented GeometricUncertaintyDepthLoss and MultiTaskLoss3D
 - 2026-09-24 01:21: Updated train.py with full config-driven loss heads and device-mapped targets
 - 2026-09-24 01:24: Fixed AttributeError in MultiTaskLoss3D by preserving PyTorch gradient tensors
+- 2026-09-24 01:27: Updated MultiTaskLoss3D target extraction logic to properly handle dataset batch labels
