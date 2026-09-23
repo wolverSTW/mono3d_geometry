@@ -145,3 +145,7 @@
 - Integrated `tqdm` progress bars for batch-level training and validation updates with `dynamic_ncols=True`.
 - Forced `flush=True` on stdout statements and set `PYTHONUNBUFFERED=1` support to prevent terminal output buffering.
 - Optimized DataLoader settings (`num_workers=0`, `pin_memory=True`, `non_blocking=True`) to avoid multi-processing hangs and speed up host-to-GPU data transfer on RTX 4090.
+
+### Enhanced Training Pipeline Visual Formatting
+- Redesigned `scripts/train.py` console output with structured tags (`[HARDWARE]`, `[DATASET]`, `[MODEL]`, `[PIPELINE]`).
+- Improved progress bar layout and added clean epoch summary lines with exact timings and loss metrics.
