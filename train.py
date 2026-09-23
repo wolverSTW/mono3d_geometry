@@ -26,9 +26,9 @@ def collate_fn(batch):
     }
 
 def main():
-    print("=" * 65, flush=True)
+    print("=" * 75, flush=True)
     print("=== [PHASE 4] Executing Config-Driven Mono3D Model Training ===", flush=True)
-    print("=" * 65, flush=True)
+    print("=" * 75, flush=True)
     
     config_path = "configs/mono3d_config.yaml"
     config = {}
@@ -38,10 +38,12 @@ def main():
         print(f"[CONFIG] Loaded configuration from '{config_path}'.", flush=True)
 
     train_cfg = config.get('training', {})
-    epochs = train_cfg.get('epochs', 50)
+    
+    # Check for override env variable or default to 5 epochs for quick run
+    epochs = int(os.environ.get("EPOCHS", train_cfg.get('epochs', 5)))
     batch_size = train_cfg.get('batch_size', 16)
-    lr = train_cfg.get('lr', 1e-3)
-    weight_decay = train_cfg.get('weight_decay', 1e-4)
+    lr = float(train_cfg.get('lr', 1e-3))
+    weight_decay = float(train_cfg.get('weight_decay', 1e-4))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[HARDWARE] Compute Accelerator: {device.type.upper()} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})", flush=True)
@@ -77,6 +79,9 @@ def main():
     model = Mono3DNetwork(config=config).to(device)
     criterion = MultiTaskLoss3D(num_classes=config.get('model', {}).get('num_classes', 5)).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    
+    # Cosine Annealing Learning Rate Scheduler for smooth convergence
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     os.makedirs("weights", exist_ok=True)
     
@@ -84,14 +89,16 @@ def main():
     best_checkpoint_path = "weights/mono3d_best.pth"
     latest_checkpoint_path = "weights/mono3d_phase4_latest.pth"
 
-    print("\n" + "-" * 65, flush=True)
+    print("\n" + "-" * 75, flush=True)
     print(f"  STARTING MODEL TRAINING PIPELINE ({epochs} EPOCHS)", flush=True)
-    print("-" * 65, flush=True)
+    print("-" * 75, flush=True)
 
     for epoch in range(1, epochs + 1):
         model.train()
         train_loss = 0.0
         epoch_start = time.time()
+        
+        current_lr = optimizer.param_groups[0]['lr']
         
         pbar = tqdm(
             train_loader, 
@@ -114,7 +121,7 @@ def main():
             optimizer.step()
 
             train_loss += loss.item()
-            pbar.set_postfix({'loss': f"{loss.item():.4f}"})
+            pbar.set_postfix({'loss': f"{loss.item():.4f}", 'lr': f"{current_lr:.6f}"})
 
         avg_train_loss = train_loss / max(len(train_loader), 1)
 
@@ -131,6 +138,9 @@ def main():
 
         avg_val_loss = val_loss / max(len(val_loader), 1)
         epoch_time = time.time() - epoch_start
+        
+        # Scheduler Step
+        scheduler.step()
 
         # Save Best Model Checkpoint
         saved_best_tag = ""
@@ -139,8 +149,8 @@ def main():
             torch.save(model.state_dict(), best_checkpoint_path)
             saved_best_tag = f" -> [SAVED BEST: {best_checkpoint_path}]"
 
-        print(f" [SUMMARY] Epoch {epoch:02d}/{epochs:02d} Completed in {epoch_time:.1f}s -> Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}{saved_best_tag}", flush=True)
-        print("-" * 65, flush=True)
+        print(f" [SUMMARY] Epoch {epoch:02d}/{epochs:02d} | LR: {current_lr:.6f} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} ({epoch_time:.1f}s){saved_best_tag}", flush=True)
+        print("-" * 75, flush=True)
 
     torch.save(model.state_dict(), latest_checkpoint_path)
     print(f"\n[SUCCESS] Final Checkpoint saved at '{latest_checkpoint_path}'.", flush=True)
