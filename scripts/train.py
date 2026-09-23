@@ -30,7 +30,6 @@ def main():
     print("=== [PHASE 4] Executing Config-Driven Mono3D Model Training ===", flush=True)
     print("=" * 65, flush=True)
     
-    # 1. Config Loading
     config_path = "configs/mono3d_config.yaml"
     config = {}
     if os.path.exists(config_path):
@@ -45,17 +44,16 @@ def main():
     weight_decay = train_cfg.get('weight_decay', 1e-4)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"[HARDWARE] Active Compute Accelerator: {device.type.upper()} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})", flush=True)
+    print(f"[HARDWARE] Compute Accelerator: {device.type.upper()} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})", flush=True)
 
-    # 2. Dataset Setup
-    print("\n[DATASET] Initializing KITTI Mono3D Datasets...", flush=True)
+    print("\n[DATASET] Loading KITTI Mono3D Dataset...", flush=True)
     t0 = time.time()
     train_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="train", augment=True)
     val_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="val", augment=False)
-    print(f"[DATASET] Successfully loaded: {len(train_dataset)} Train Samples | {len(val_dataset)} Validation Samples ({time.time()-t0:.2f}s)", flush=True)
+    print(f"[DATASET] Loaded {len(train_dataset)} Train samples, {len(val_dataset)} Val samples ({time.time()-t0:.2f}s).", flush=True)
 
-    # 3. DataLoader Setup
-    num_workers = min(4, os.cpu_count() or 1)
+    # RTX 4090 Performance Optimization: 8 Multi-workers & Prefetching
+    num_workers = min(8, os.cpu_count() or 1)
     train_loader = DataLoader(
         train_dataset, 
         batch_size=batch_size, 
@@ -63,7 +61,8 @@ def main():
         collate_fn=collate_fn,
         num_workers=num_workers,
         pin_memory=True,
-        persistent_workers=True if num_workers > 0 else False
+        persistent_workers=True if num_workers > 0 else False,
+        prefetch_factor=2 if num_workers > 0 else None
     )
     val_loader = DataLoader(
         val_dataset, 
@@ -74,14 +73,12 @@ def main():
         pin_memory=True,
         persistent_workers=True if num_workers > 0 else False
     )
-    print(f"[PIPELINE] Created DataLoaders with Batch Size={batch_size}, Workers={num_workers}.", flush=True)
+    print(f"[PIPELINE] DataLoaders initialized with Batch Size={batch_size}, Workers={num_workers}.", flush=True)
 
-    # 4. Model & Loss Setup
-    print("\n[MODEL] Building Mono3D Architecture & Multi-Task Loss Heads...", flush=True)
+    print("\n[MODEL] Initializing Mono3D Model Architecture & Loss Heads...", flush=True)
     model = Mono3DNetwork(config=config).to(device)
     criterion = MultiTaskLoss3D(num_classes=config.get('model', {}).get('num_classes', 5)).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    print(f"[OPTIM] Initialized AdamW Optimizer (LR={lr}, Weight Decay={weight_decay}).", flush=True)
 
     os.makedirs("weights", exist_ok=True)
     
@@ -89,13 +86,11 @@ def main():
     print(f"  STARTING MODEL TRAINING PIPELINE ({epochs} EPOCHS)", flush=True)
     print("-" * 65, flush=True)
 
-    # 5. Training Loop
     for epoch in range(1, epochs + 1):
         model.train()
         train_loss = 0.0
         epoch_start = time.time()
         
-        # Clean progress bar formatting
         pbar = tqdm(
             train_loader, 
             desc=f"Epoch [{epoch:02d}/{epochs:02d}] Train", 
@@ -121,7 +116,6 @@ def main():
 
         avg_train_loss = train_loss / max(len(train_loader), 1)
 
-        # Validation Step
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
@@ -135,14 +129,12 @@ def main():
         avg_val_loss = val_loss / max(len(val_loader), 1)
         epoch_time = time.time() - epoch_start
 
-        # Clean Step Summary Output
         print(f" [SUMMARY] Epoch {epoch:02d}/{epochs:02d} Completed in {epoch_time:.1f}s -> Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}", flush=True)
         print("-" * 65, flush=True)
 
     checkpoint_path = "weights/mono3d_phase4_latest.pth"
     torch.save(model.state_dict(), checkpoint_path)
-    print(f"\n[SUCCESS] Training Pipeline Completed Successfully!", flush=True)
-    print(f"[CHECKPOINT] Model Weights Saved at: '{checkpoint_path}'", flush=True)
+    print(f"\n[SUCCESS] Model Checkpoint saved at '{checkpoint_path}'.", flush=True)
 
 if __name__ == "__main__":
     main()

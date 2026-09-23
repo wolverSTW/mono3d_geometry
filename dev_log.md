@@ -149,3 +149,7 @@
 ### Enhanced Training Pipeline Visual Formatting
 - Redesigned `scripts/train.py` console output with structured tags (`[HARDWARE]`, `[DATASET]`, `[MODEL]`, `[PIPELINE]`).
 - Improved progress bar layout and added clean epoch summary lines with exact timings and loss metrics.
+
+### Removed Debug Prints and Optimized Data Pipeline
+- Removed debug prints (`[DEBUG 1/7]` ... `[DEBUG 7/7]`) from `scripts/train.py`.
+- Optimized DataLoader speed for RTX 4090 by configuring `num_workers=8`, `prefetch_factor=2`, and `persistent_workers=True`.
