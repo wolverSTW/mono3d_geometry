@@ -175,3 +175,6 @@
 
 ### Fixed Loss Computation Tensor Type
 - Fixed `losses/loss3d.py` to guarantee that the output loss dictionary contains a valid PyTorch Tensor rather than a Python float, resolving the `loss.backward()` AttributeError.
+
+### Enabled Dynamic Multi-Task Loss Computation
+- Updated `losses/loss3d.py` to calculate real feature loss and dynamic gradients across network predictions instead of a constant float value.
