@@ -48,3 +48,4 @@
 - **Params (M) Integration**: Added `Params (M)` column to `evaluate.py` evaluation table to directly align with lightweight M3D benchmarks like LeAD-M3D.
 - **Complete Benchmark Alignment**: Evaluation pipeline now tracks `Params (M)`, `GFLOPs`, `Latency (ms)`, and `FPS` along with 3D Detection & BEV Accuracy metrics.
 - 2026-09-24 01:13: Updated mono3d_config.yaml with lightweight setup (depth_gate, uncertainty depth_head: 2, num_bins: 12)
+- 2026-09-24 01:15: Updated models/head3d.py with LightweightDepthGate and Uncertainty depth head
