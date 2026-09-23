@@ -3,33 +3,36 @@ dataset:
   img_size: [384, 1280]
 
 model:
-  name: "YOLOv10_Mono3D"
+  name: "YOLOv10_Mono3D_Lightweight"
   num_classes: 5
   backbone:
     type: "yolov10"
     in_channels: 3
-    feature_channels: [128, 256, 512]  # Multi-scale feature maps (P3, P4, P5)
+    feature_channels: [256, 512, 1024] # YOLOv10 Backbone (P3, P4, P5) Output Channels အမှန် သို့ ပြင်ဆင်ထားသည်
+    pretrained: true
+
   head:
     use_scdown: true
     use_c2fcib: true
     use_psa: true
-    num_anchors: 1
+    use_depth_gate: true # Lightweight Depth Attention Gate ဖွင့်ရန်
+    num_bins: 12 # Orientation တိကျမှုမြင့်မားစေရန် Bin 12 ခုသို့ တိုးမြှင့်ထားသည်
     regression_heads:
-      cls_head: 5         # Number of classes
-      bbox2d_head: 4      # [x, y, w, h]
-      dim3d_head: 3       # [height, width, length]
-      depth_head: 1       # [z_depth / disparity]
-      orient_head: 2      # [sin(ry), cos(ry)]
+      cls_head: 5 # Number of classes
+      bbox2d_head: 4 # [x, y, w, h]
+      dim3d_head: 3 # [height, width, length]
+      depth_head: 2 # [depth_value, log_variance] (Geometric Uncertainty သုံးရန် Channel 2 ခု)
+      orient_head: 24 # num_bins (12) * 2 [bin_cls, residual_offset]
 
 training:
-  epochs: 50
+  epochs: 200 # Monocular 3D Converge ဖြစ်စေရန် Epochs တိုးထားသည်
   batch_size: 16
   lr: 0.001
-  weight_decay: 0.0001
+  weight_decay: 0.0005 # Regularization ပိုကောင်းစေရန် ပြင်ထားသည်
   save_dir: "weights"
   loss_weights:
     cls: 1.0
     bbox2d: 1.0
     dim3d: 1.0
-    depth: 2.0
+    depth_uncertainty: 1.0 # Geometric Uncertainty Loss အတွက်
     orient: 1.0
