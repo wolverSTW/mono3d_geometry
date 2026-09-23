@@ -107,3 +107,6 @@
 
 ### EDA Document Generation Refactoring
 - Updated `scripts/eda_kitti.py` to auto-export dataset statistics into CSV (`kitti_objects_summary.csv`), JSON (`class_geometry_stats.json`), and PNG graph charts (`kitti_eda_analysis.png`) in `outputs/eda/`.
+
+### Requirements Update
+- Updated `requirements.txt` to explicitly include `pandas`, `matplotlib`, `seaborn`, and `tqdm` for automated EDA report and plot generation.
