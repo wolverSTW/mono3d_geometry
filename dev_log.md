@@ -97,3 +97,7 @@
 ### Bug Fix & Import Path Resolution
 - Fixed `ModuleNotFoundError` in `scripts/download_kitti.py` by appending project root path to `sys.path`.
 - Ensured automated download and extraction of KITTI dataset images, labels, and calibration files seamlessly execute via `run_all.sh`.
+
+### Configuration Refactoring
+- Decoupled training hyperparameters (Epochs, Batch Size, LR) from `train.py` into `configs/mono3d_config.yaml`.
+- Set full GPU training defaults (Epochs: 50, Batch Size: 16).

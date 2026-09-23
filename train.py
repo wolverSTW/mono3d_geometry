@@ -27,32 +27,39 @@ def collate_fn(batch):
 def main():
     print("=== [PHASE 4] Starting Monocular 3D Detection Training Pipeline ===")
     
-    # 1. Configuration Setup
+    # 1. Load Configuration
     config_path = "configs/mono3d_config.yaml"
     config = {}
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
 
+    train_cfg = config.get('training', {})
+    epochs = train_cfg.get('epochs', 50)
+    batch_size = train_cfg.get('batch_size', 16)
+    lr = train_cfg.get('lr', 1e-3)
+    weight_decay = train_cfg.get('weight_decay', 1e-4)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[INFO] Using Device: {device}")
+    print(f"[CONFIG] Epochs: {epochs} | Batch Size: {batch_size} | Learning Rate: {lr}")
 
     # 2. Datasets and DataLoaders
     train_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="train", augment=True)
     val_dataset = KITTIDataset(data_dir="data/kitti", config=config, split="val", augment=False)
 
-    train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
-    val_loader = DataLoader(val_dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 
     print(f"[DATA] Train Samples: {len(train_dataset)} | Val Samples: {len(val_dataset)}")
 
     # 3. Model, Loss Function, Optimizer
-    model = Mono3DNetwork(num_classes=5).to(device)
-    criterion = MultiTaskLoss3D(num_classes=5).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    num_classes = config.get('model', {}).get('num_classes', 5)
+    model = Mono3DNetwork(num_classes=num_classes).to(device)
+    criterion = MultiTaskLoss3D(num_classes=num_classes).to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     os.makedirs("weights", exist_ok=True)
-    epochs = 2  # Demonstration test epochs
 
     # 4. Training Loop
     for epoch in range(1, epochs + 1):

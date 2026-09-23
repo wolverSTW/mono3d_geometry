@@ -1,24 +1,17 @@
-# Dataset Configuration (5 Classes)
-nc: 5
-names: ['Car', 'Van', 'Truck', 'Pedestrian', 'Cyclist']
+# dataset path and Image size
+dataset:
+  path: "data/kitti"
+  img_size: [384, 1280]
 
-# Class Mapping Strategy (Optional Custom Rules)
-# Raw KITTI Classes -> Target Class Mapping
-class_map:
-  Car: 'Car'
-  Van: 'Van'
-  Truck: 'Truck'
-  Pedestrian: 'Pedestrian'
-  Person_sitting: 'Pedestrian'  # Person_sitting ကို Pedestrian အဖြစ် ပေါင်းစပ်ထားသည်
-  Cyclist: 'Cyclist'
-
-# Image & Data Preprocessing
-img_size: [384, 1280]
+# classes
+model:
+  num_classes: 5
 
 # Training Hyperparameters
 train:
   epochs: 50
-  batch_size: 8
-  lr: 0.0003
+  batch_size: 16
+  lr: 0.001
   weight_decay: 0.0001
   patience: 10
+  save_dir: "weights"
