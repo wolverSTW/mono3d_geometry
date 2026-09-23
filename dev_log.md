@@ -56,3 +56,4 @@
 - 2026-09-24 01:24: Fixed AttributeError in MultiTaskLoss3D by preserving PyTorch gradient tensors
 - 2026-09-24 01:27: Updated MultiTaskLoss3D target extraction logic to properly handle dataset batch labels
 - 2026-09-24 01:31: Bound depth uncertainty log_variance in GeometricUncertaintyDepthLoss to prevent negative loss explosion
+- 2026-09-24 01:34: Stabilized GeometricUncertaintyDepthLoss formulation with constant shift and ReLU to enforce positive range

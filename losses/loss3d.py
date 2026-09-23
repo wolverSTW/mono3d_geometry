@@ -4,26 +4,31 @@ import torch.nn.functional as F
 
 class GeometricUncertaintyDepthLoss(nn.Module):
     """
-    Computes Geometric Uncertainty Depth Loss with variance clamping to avoid negative loss explosion.
-    pred_depth shape: [B, 2, H, W] where channel 0 = depth_val, channel 1 = log_variance (log(sigma^2))
+    Computes Geometric Uncertainty Depth Loss stabilized for strictly positive loss range.
+    pred_depth shape: [B, 2, H, W] where channel 0 = depth_val, channel 1 = log_variance
     """
-    def __init__(self, log_var_min=-3.0, log_var_max=5.0):
+    def __init__(self, log_var_min=-2.0, log_var_max=5.0):
         super().__init__()
         self.log_var_min = log_var_min
         self.log_var_max = log_var_max
 
     def forward(self, pred_depth, target_depth):
         depth_val = pred_depth[:, 0:1, :, :]
-        # Variance မပြိုလဲစေရန် Clamp / Bounding ပြုလုပ်ခြင်း
+        # Bound log_var safely
         log_var = torch.clamp(pred_depth[:, 1:2, :, :], min=self.log_var_min, max=self.log_var_max)
 
         if depth_val.shape[2:] != target_depth.shape[2:]:
             target_depth = F.interpolate(target_depth, size=depth_val.shape[2:], mode='nearest')
 
+        # Absolute Error
+        abs_err = torch.abs(depth_val - target_depth)
+        
+        # Heteroscedastic Aleatoric Loss formulation
+        # Precision = exp(-s), loss = precision * abs_err + 0.5 * s
         precision = torch.exp(-log_var)
-        # Laplician / Heteroscedastic Uncertainty Depth Loss
-        loss = precision * torch.abs(depth_val - target_depth) + log_var
-        return loss.mean()
+        loss = precision * abs_err + 0.5 * log_var + 1.0  # Constant shift (+1.0) ensures non-negative stability
+        
+        return F.relu(loss).mean()
 
 
 class MultiTaskLoss3D(nn.Module):
