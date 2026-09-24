@@ -2,6 +2,7 @@ import os
 import sys
 import yaml
 import time
+import argparse
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -26,23 +27,36 @@ def collate_fn(batch):
     }
 
 def main():
+    # 1. Dynamic CLI Arguments Parsing
+    parser = argparse.ArgumentParser(description="YOLOv10 Mono3D Dynamic Experiment Training")
+    parser.add_argument('--config', type=str, default='configs/experiments/yolov10_mono3d_base.yaml', help='Path to experiment config')
+    parser.add_argument('--exp-name', type=str, default='model_1_base', help='Experiment Identifier (e.g. model_1_base, model_2_depthgate)')
+    args = parser.parse_args()
+
+    # 2. Experiment Directories Setup
+    exp_dir = os.path.join("logs", "experiments", args.exp_name)
+    weights_dir = os.path.join(exp_dir, "checkpoints")
+    os.makedirs(weights_dir, exist_ok=True)
+
     print("=" * 75, flush=True)
-    print("=== [PHASE 4] Executing Config-Driven Mono3D Model Training ===", flush=True)
+    print(f"=== [EXPERIMENT RUN] Executing Training for '{args.exp_name}' ===", flush=True)
     print("=" * 75, flush=True)
     
-    config_path = "configs/mono3d_config.yaml"
+    config_path = args.config
     config = {}
     if os.path.exists(config_path):
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-        print(f"[CONFIG] Loaded configuration from '{config_path}'.", flush=True)
+        print(f"[CONFIG] Loaded experiment configuration from '{config_path}'.", flush=True)
+    else:
+        print(f"[ERROR] Config file not found at '{config_path}'!", flush=True)
+        sys.exit(1)
 
     train_cfg = config.get('training', {})
     model_cfg = config.get('model', {})
     head_cfg = model_cfg.get('head', {})
     
-    # Check for override env variable or default from config
-    epochs = int(os.environ.get("EPOCHS", train_cfg.get('epochs', 5)))
+    epochs = int(os.environ.get("EPOCHS", train_cfg.get('epochs', 200)))
     batch_size = train_cfg.get('batch_size', 16)
     lr = float(train_cfg.get('lr', 1e-3))
     weight_decay = float(train_cfg.get('weight_decay', 1e-4))
@@ -80,7 +94,6 @@ def main():
     print("\n[MODEL] Initializing Mono3D Model Architecture & Loss Heads...", flush=True)
     model = Mono3DNetwork(config=config).to(device)
     
-    # Updated MultiTaskLoss3D initialization with configs
     loss_weights = train_cfg.get('loss_weights', None)
     criterion = MultiTaskLoss3D(
         loss_weights=loss_weights,
@@ -89,18 +102,17 @@ def main():
     ).to(device)
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    
-    # Cosine Annealing Learning Rate Scheduler
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
-    os.makedirs("weights", exist_ok=True)
-    
+    # Save Checkpoint Paths dynamically per experiment
+    best_checkpoint_path = os.path.join(weights_dir, "best.pth")
+    latest_checkpoint_path = os.path.join(weights_dir, "latest.pth")
+
     best_val_loss = float('inf')
-    best_checkpoint_path = "weights/mono3d_best.pth"
-    latest_checkpoint_path = "weights/mono3d_phase4_latest.pth"
 
     print("\n" + "-" * 75, flush=True)
-    print(f"  STARTING MODEL TRAINING PIPELINE ({epochs} EPOCHS)", flush=True)
+    print(f"  STARTING EXPERIMENT '{args.exp_name}' TRAINING PIPELINE ({epochs} EPOCHS)", flush=True)
+    print(f"  Checkpoints will be saved to: {weights_dir}", flush=True)
     print("-" * 75, flush=True)
 
     for epoch in range(1, epochs + 1):
@@ -112,7 +124,7 @@ def main():
         
         pbar = tqdm(
             train_loader, 
-            desc=f"Epoch [{epoch:02d}/{epochs:02d}] Train", 
+            desc=f"[{args.exp_name}] Epoch [{epoch:02d}/{epochs:02d}]", 
             leave=True, 
             dynamic_ncols=True,
             bar_format="{l_bar}{bar:25}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
@@ -122,7 +134,6 @@ def main():
             images = batch['image'].to(device, non_blocking=True)
             targets = batch['labels']
 
-            # Move target tensors to GPU/Device if applicable
             if isinstance(targets, dict):
                 targets = {k: v.to(device, non_blocking=True) if isinstance(v, torch.Tensor) else v for k, v in targets.items()}
 
@@ -136,7 +147,6 @@ def main():
 
             train_loss += loss.item()
             
-            # Detailed loss tracking in progress bar
             depth_l = loss_dict.get('loss_depth', torch.tensor(0.0)).item()
             pbar.set_postfix({'loss': f"{loss.item():.4f}", 'depth_l': f"{depth_l:.4f}", 'lr': f"{current_lr:.6f}"})
 
@@ -159,7 +169,6 @@ def main():
         avg_val_loss = val_loss / max(len(val_loader), 1)
         epoch_time = time.time() - epoch_start
         
-        # Scheduler Step
         scheduler.step()
 
         # Save Best Model Checkpoint

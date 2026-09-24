@@ -118,3 +118,16 @@ class YOLOv10Backbone(nn.Module):
 
 # Alias to support 'Mono3DBackbone' imports in Mono3DNetwork
 Mono3DBackbone = YOLOv10Backbone
+
+class BackboneFactory:
+    """
+    Factory Class to dynamically build different backbone architectures based on Config YAML
+    """
+    @staticmethod
+    def build(backbone_type="yolov10", in_channels=3, weights_path=None, **kwargs):
+        backbone_type = backbone_type.lower()
+        
+        if backbone_type in ["yolov10", "yolov10_base", "mono3d_base"]:
+            return YOLOv10Backbone(in_channels=in_channels, weights_path=weights_path, **kwargs)
+        else:
+            raise ValueError(f"Unsupported backbone type: '{backbone_type}'. Available: ['yolov10']")

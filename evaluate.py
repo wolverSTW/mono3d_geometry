@@ -1,5 +1,7 @@
 import os
+import sys
 import time
+import argparse
 import torch
 import numpy as np
 import yaml
@@ -85,9 +87,30 @@ def evaluate_class_performance(cls_name):
             round(mae, 4), round(rmse, 4))
 
 def evaluate_framework():
-    print("="*85)
-    print(" CORRECTED MONO3D EVALUATION PIPELINE WITH PARAMS (M) & GFLOPS ")
-    print("="*85)
+    # 1. Dynamic CLI Arguments Parsing
+    parser = argparse.ArgumentParser(description="MONO3D Dynamic Experiment Evaluation Pipeline")
+    parser.add_argument('--config', type=str, default='configs/experiments/yolov10_mono3d_base.yaml', help='Path to experiment config')
+    parser.add_argument('--exp-name', type=str, default='model_1_base', help='Experiment Identifier')
+    parser.add_argument('--weights', type=str, default=None, help='Path to trained weights checkpoint')
+    args = parser.parse_args()
+
+    # Determine Weights Path dynamically if not explicitly specified
+    if args.weights is None:
+        args.weights = os.path.join("logs", "experiments", args.exp_name, "checkpoints", "best.pth")
+
+    print("=" * 85, flush=True)
+    print(f"=== [EVALUATION RUN] Executing Evaluation for '{args.exp_name}' ===", flush=True)
+    print("=" * 85, flush=True)
+    
+    # Load experiment configuration if present
+    if os.path.exists(args.config):
+        with open(args.config, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        print(f"[CONFIG] Loaded configuration from '{args.config}'.", flush=True)
+    else:
+        print(f"[WARNING] Config file not found at '{args.config}'. Continuing with defaults.", flush=True)
+
+    print(f"[WEIGHTS] Target weights file: '{args.weights}'", flush=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     classes = ["Car", "Pedestrian", "Cyclist", "Truck", "Bus"]
@@ -153,7 +176,8 @@ def evaluate_framework():
     print(df_full.to_string(index=False))
     print("-" * 135)
 
-    output_dir = "evaluation_results"
+    # Experiment specific output directory
+    output_dir = os.path.join("logs", "experiments", args.exp_name, "evaluation")
     os.makedirs(output_dir, exist_ok=True)
     
     csv_path = os.path.join(output_dir, "eval_results.csv")
@@ -171,7 +195,7 @@ def evaluate_framework():
         print(f"\nExcel export note: {e}")
 
     print(f"Saved CSV File  : {csv_path}")
-    print("="*85)
+    print("=" * 85, flush=True)
 
 if __name__ == "__main__":
     evaluate_framework()
