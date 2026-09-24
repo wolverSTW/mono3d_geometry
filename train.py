@@ -95,18 +95,37 @@ def main():
     print("\n[MODEL] Initializing Mono3D Model Architecture & Loss Heads...", flush=True)
     model = Mono3DNetwork(config=config).to(device)
     
-    # Checkpoint Resume / Fine-tune Weight Loading Logic
+    # Checkpoint Resume / Fine-tune Weight Loading Logic with Shape Mismatch Handling
     if args.weights:
         if os.path.exists(args.weights):
             print(f"[CHECKPOINT] Loading existing weights from '{args.weights}' for fine-tuning...", flush=True)
             checkpoint = torch.load(args.weights, map_location=device)
+            
+            # Extract state_dict dictionary
             if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
-                model.load_state_dict(checkpoint['state_dict'], strict=False)
+                state_dict = checkpoint['state_dict']
             elif isinstance(checkpoint, dict) and 'model' in checkpoint:
-                model.load_state_dict(checkpoint['model'], strict=False)
+                state_dict = checkpoint['model']
             else:
-                model.load_state_dict(checkpoint, strict=False)
-            print(f"[CHECKPOINT] Successfully loaded pretrained weights!", flush=True)
+                state_dict = checkpoint
+
+            # Filter out shape mismatched weights (e.g., cls_head when changing class count)
+            model_state_dict = model.state_dict()
+            filtered_state_dict = {}
+            mismatched_keys = []
+
+            for k, v in state_dict.items():
+                if k in model_state_dict:
+                    if model_state_dict[k].shape == v.shape:
+                        filtered_state_dict[k] = v
+                    else:
+                        mismatched_keys.append(k)
+
+            model.load_state_dict(filtered_state_dict, strict=False)
+            
+            if mismatched_keys:
+                print(f"[CHECKPOINT] Skipped mismatched layers due to class count change: {mismatched_keys}", flush=True)
+            print(f"[CHECKPOINT] Successfully loaded matching backbone & head weights!", flush=True)
         else:
             print(f"[WARNING] Pretrained weights path '{args.weights}' not found! Starting training from scratch.", flush=True)
 
