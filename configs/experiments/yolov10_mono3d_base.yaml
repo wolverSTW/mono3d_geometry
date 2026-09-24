@@ -1,0 +1,57 @@
+# ==============================================================================
+# YOLOv10 Monocular 3D Detection Config (Optimized Version)
+# ==============================================================================
+
+dataset:
+  name: "KITTI_Mono3D"
+  path: "data/kitti"
+  img_size: [384, 1280]
+  # Car AP3D ကို အရင်ဆွဲတင်ရန် Target Class ကို Car သို့ သီးသန့် အာရုံစိုက်ခိုင်းပါမည်
+  classes: ["Car", "Pedestrian", "Cyclist", "Truck", "Bus"]
+  primary_eval_class: "Car" # Main Evaluation Target
+
+model:
+  name: "YOLOv10_Mono3D_Lightweight"
+  num_classes: 5
+  backbone:
+    type: "yolov10"
+    in_channels: 3
+    feature_channels: [256, 512, 1024] # P3, P4, P5
+    pretrained: true
+
+  head:
+    type: "Mono3D_Decoupled_Head"
+    use_scdown: true
+    use_c2fcib: true
+    use_psa: true
+    use_depth_gate: true # Lightweight Depth Attention Gate
+    num_bins: 12 # 12-bin Orientation setup
+    regression_heads:
+      cls_head: 5
+      bbox2d_head: 4
+      dim3d_head: 3
+      depth_head: 2 # [depth, log_variance]
+      orient_head: 24 # num_bins (12) * 2
+
+training:
+  epochs: 200
+  batch_size: 16
+  lr: 0.001
+  weight_decay: 0.0005
+  save_dir: "weights/experiments/yolov10_mono3d_base"
+
+  # 3D Metrics (AP3D) တက်လာစေရန် Loss Weights များကို အချိုးအစား ပြန်ညှိထားပါသည်
+  loss_weights:
+    cls: 1.0
+    bbox2d: 1.0
+    dim3d: 2.0 # Height, Width, Length တိကျစေရန် 2.0 သို့ မြှင့်ထားသည်
+    depth_uncertainty: 1.0 # Depth နေရာ တိကျနေပြီးဖြစ်၍ 1.0 ထားသည်
+    orient: 3.0 # AP3D Box Overlap ကို ဆွဲတင်ပေးမည့် အဓိက Key Weight (3.0)
+
+  augmentation:
+    random_flip: 0.5
+    scale: [0.95, 1.05]
+
+evaluation:
+  iou_threshold_3d: 0.7 # KITTI Standard Car 3D IoU Threshold
+  iou_threshold_bev: 0.7
