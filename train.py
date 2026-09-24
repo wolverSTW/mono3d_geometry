@@ -30,7 +30,8 @@ def main():
     # 1. Dynamic CLI Arguments Parsing
     parser = argparse.ArgumentParser(description="YOLOv10 Mono3D Dynamic Experiment Training")
     parser.add_argument('--config', type=str, default='configs/experiments/yolov10_mono3d_base.yaml', help='Path to experiment config')
-    parser.add_argument('--exp-name', type=str, default='model_1_base', help='Experiment Identifier (e.g. model_1_base, model_2_depthgate)')
+    parser.add_argument('--exp-name', type=str, default='model_1_base', help='Experiment Identifier (e.g. model_1_base, exp1_car_only)')
+    parser.add_argument('--weights', '--resume', type=str, default=None, help='Path to checkpoint weights for fine-tuning or resuming training')
     args = parser.parse_args()
 
     # 2. Experiment Directories Setup
@@ -94,6 +95,21 @@ def main():
     print("\n[MODEL] Initializing Mono3D Model Architecture & Loss Heads...", flush=True)
     model = Mono3DNetwork(config=config).to(device)
     
+    # Checkpoint Resume / Fine-tune Weight Loading Logic
+    if args.weights:
+        if os.path.exists(args.weights):
+            print(f"[CHECKPOINT] Loading existing weights from '{args.weights}' for fine-tuning...", flush=True)
+            checkpoint = torch.load(args.weights, map_location=device)
+            if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
+                model.load_state_dict(checkpoint['state_dict'], strict=False)
+            elif isinstance(checkpoint, dict) and 'model' in checkpoint:
+                model.load_state_dict(checkpoint['model'], strict=False)
+            else:
+                model.load_state_dict(checkpoint, strict=False)
+            print(f"[CHECKPOINT] Successfully loaded pretrained weights!", flush=True)
+        else:
+            print(f"[WARNING] Pretrained weights path '{args.weights}' not found! Starting training from scratch.", flush=True)
+
     loss_weights = train_cfg.get('loss_weights', None)
     criterion = MultiTaskLoss3D(
         loss_weights=loss_weights,
