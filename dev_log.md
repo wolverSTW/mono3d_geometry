@@ -75,6 +75,17 @@
 - **Pipeline Testing Completed:** Verified dynamic CLI workflow using `python train.py` and `python evaluate.py` with custom experiment configurations.
 
 ## [2026-09-24] - Refactored Evaluation Pipeline
+
 - **Integrated Checkpoint Loading**: Updated `evaluate.py` to parse `--weights` CLI argument and load actual trained model weights (`weights/mono3d_best.pth`).
 - **Real Latency & Model Measurement**: Replaced dummy measurement with actual PyTorch forward pass inference profiling for parameter count, latency, and FPS metrics.
 - **Dynamic Export Routing**: Added `--exp-name` support to dynamically export evaluation CSV/Excel tables into experiment-specific directories.
+
+## Experiment 1: Car Only Baseline (`exp1_car_only`)
+
+- **Status:** Completed (100 Epochs)
+- **Best Val Loss:** 0.0000
+- **Weight Location:** `logs/experiments/exp1_car_only/checkpoints/best.pth`
+- **Evaluation Results (IoU @ 0.7):**
+  - **AP_3D (Easy / Mod / Hard):** [Evaluate ရလဒ်ဖြည့်ပါ]
+  - **AP_BEV (Easy / Mod / Hard):** [Evaluate ရလဒ်ဖြည့်ပါ]
+- **Summary:** Baseline model trained successfully for single-class (Car) 3D detection.
