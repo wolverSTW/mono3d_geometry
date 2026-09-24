@@ -73,3 +73,8 @@
 - **Added `BackboneFactory` class** to `models/backbone.py` to enable dynamic backbone instantiation from YAML configurations.
 - **Enhanced UTF-8 Encoding:** Configured explicit `utf-8` encoding across file read procedures in `train.py` and `evaluate.py` to ensure cross-platform compatibility (Windows OS).
 - **Pipeline Testing Completed:** Verified dynamic CLI workflow using `python train.py` and `python evaluate.py` with custom experiment configurations.
+
+## [2026-09-24] - Refactored Evaluation Pipeline
+- **Integrated Checkpoint Loading**: Updated `evaluate.py` to parse `--weights` CLI argument and load actual trained model weights (`weights/mono3d_best.pth`).
+- **Real Latency & Model Measurement**: Replaced dummy measurement with actual PyTorch forward pass inference profiling for parameter count, latency, and FPS metrics.
+- **Dynamic Export Routing**: Added `--exp-name` support to dynamically export evaluation CSV/Excel tables into experiment-specific directories.
