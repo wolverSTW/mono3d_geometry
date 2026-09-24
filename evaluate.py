@@ -8,9 +8,9 @@ import yaml
 
 
 def load_config(config_path):
-    """Fallback YAML Loader in case utils.config is missing"""
+    """YAML Loader with explicit UTF-8 Encoding for Windows Support"""
     if os.path.exists(config_path):
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     return {}
 
@@ -57,7 +57,7 @@ def evaluate_framework():
         print(f"[WARNING] Evaluating with Baseline Parameters configuration.")
         model_params_m = 12.8
 
-    model_gflops = cfg.get("model", {}).get("gflops", 32.5)
+    model_gflops = cfg.get("model", {}).get("gflops", 32.5) if isinstance(cfg, dict) else 32.5
 
     # Real Latency Measurement
     dummy_input = torch.randn(1, 3, 384, 1280, device=device)
