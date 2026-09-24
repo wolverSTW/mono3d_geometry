@@ -39,7 +39,7 @@ def evaluate_framework():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Import Network Dynamic Handling
+    # Dynamic Model Import
     try:
         from models.mono3d_network import Mono3DNetwork
         model = Mono3DNetwork(config=cfg).to(device)
@@ -50,8 +50,28 @@ def evaluate_framework():
     if model is not None and os.path.exists(args.weights):
         checkpoint = torch.load(args.weights, map_location=device)
         state_dict = checkpoint.get("model_state_dict", checkpoint) if isinstance(checkpoint, dict) else checkpoint
-        model.load_state_dict(state_dict, strict=False)
+        
+        # Filter out shape mismatched weights (e.g. orient_head)
+        model_state_dict = model.state_dict()
+        filtered_state_dict = {}
+        mismatched_keys = []
+
+        for k, v in state_dict.items():
+            if k in model_state_dict:
+                if v.shape == model_state_dict[k].shape:
+                    filtered_state_dict[k] = v
+                else:
+                    mismatched_keys.append((k, v.shape, model_state_dict[k].shape))
+
+        model_state_dict.update(filtered_state_dict)
+        model.load_state_dict(model_state_dict)
+
         print(f"[SUCCESS] Successfully loaded checkpoint weights from: {args.weights}")
+        if mismatched_keys:
+            print("[INFO] Skipped mismatched layers during state_dict loading:")
+            for key, ckpt_shape, model_shape in mismatched_keys:
+                print(f"  - {key}: Checkpoint shape {ckpt_shape} vs Model shape {model_shape}")
+
         model_params_m = round(count_parameters_in_m(model), 2)
     else:
         print(f"[WARNING] Evaluating with Baseline Parameters configuration.")
