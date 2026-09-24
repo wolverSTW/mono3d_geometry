@@ -1,0 +1,42 @@
+dataset:
+  name: "KITTI_Mono3D_Car"
+  path: "data/kitti"
+  img_size: [384, 1280]
+  classes: ["Car"]
+
+model:
+  name: "YOLOv10_Mono3D_Lightweight"
+  num_classes: 1
+  backbone:
+    type: "yolov10"
+    in_channels: 3
+    feature_channels: [256, 512, 1024]
+    pretrained: true
+
+  head:
+    type: "Mono3D_Decoupled_Head"
+    use_scdown: true
+    use_c2fcib: true
+    use_psa: true
+    use_depth_gate: true
+    num_bins: 12
+    regression_heads:
+      cls_head: 1
+      bbox2d_head: 4
+      dim3d_head: 3
+      depth_head: 2
+      orient_head: 24
+
+training:
+  epochs: 100
+  batch_size: 16
+  lr: 0.0005
+  weight_decay: 0.0005
+  save_dir: "weights/experiments/exp1_car_only"
+  
+  loss_weights:
+    cls: 1.0
+    bbox2d: 1.0
+    dim3d: 2.0
+    depth_uncertainty: 1.0
+    orient: 3.0   # AP3D Overlap တက်စေမည့် အဓိက Key Weight
