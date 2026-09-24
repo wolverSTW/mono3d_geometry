@@ -91,3 +91,22 @@ class Head3D(nn.Module):
 
 # Alias to support 'Mono3DHead' imports in Mono3DNetwork
 Mono3DHead = Head3D
+
+class HeadFactory:
+    """
+    Factory Class to dynamically build 3D Detection Heads based on Config YAML
+    """
+    @staticmethod
+    def build(head_type="head3d", num_classes=5, num_bins=12, in_channels=[256, 512, 1024], use_depth_gate=True, **kwargs):
+        head_type = head_type.lower()
+        
+        if head_type in ["head3d", "mono3dhead", "default"]:
+            return Head3D(
+                num_classes=num_classes,
+                num_bins=num_bins,
+                in_channels=in_channels,
+                use_depth_gate=use_depth_gate,
+                **kwargs
+            )
+        else:
+            raise ValueError(f"Unsupported head type: '{head_type}'. Available: ['head3d']")
