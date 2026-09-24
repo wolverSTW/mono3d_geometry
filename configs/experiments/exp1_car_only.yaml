@@ -14,7 +14,7 @@ model:
     pretrained: true
 
   head:
-    type: "Mono3D_Decoupled_Head"
+    type: "head3d"
     use_scdown: true
     use_c2fcib: true
     use_psa: true
@@ -33,10 +33,10 @@ training:
   lr: 0.0005
   weight_decay: 0.0005
   save_dir: "weights/experiments/exp1_car_only"
-  
+
   loss_weights:
     cls: 1.0
     bbox2d: 1.0
     dim3d: 2.0
     depth_uncertainty: 1.0
-    orient: 3.0   # AP3D Overlap တက်စေမည့် အဓိက Key Weight
+    orient: 3.0 # AP3D Overlap တက်စေမည့် အဓိက Key Weight
