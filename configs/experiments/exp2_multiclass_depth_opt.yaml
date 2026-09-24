@@ -1,0 +1,20 @@
+experiment:
+  name: "exp2_multiclass_depth_opt"
+  description: "Multi-class 3D Detection with Balanced Depth and Orientation Loss Weights"
+
+model:
+  num_classes: 5
+  head:
+    num_bins: 12
+
+training:
+  epochs: 100
+  batch_size: 16
+  lr: 0.001
+  weight_decay: 0.0001
+  loss_weights:
+    cls: 1.0
+    box2d: 2.0
+    depth: 5.0 # Increased for sharper depth supervision
+    dim: 3.0 # Increased to improve 3D IoU / AP3D
+    rot: 2.0 # Increased for better Orientation accuracy

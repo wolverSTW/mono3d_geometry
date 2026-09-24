@@ -80,6 +80,8 @@
 - **Real Latency & Model Measurement**: Replaced dummy measurement with actual PyTorch forward pass inference profiling for parameter count, latency, and FPS metrics.
 - **Dynamic Export Routing**: Added `--exp-name` support to dynamically export evaluation CSV/Excel tables into experiment-specific directories.
 
+---
+
 ## Experiment 1: Car Only Baseline (`exp1_car_only`)
 
 - **Status:** Completed (100 Epochs)
@@ -89,3 +91,10 @@
   - **AP_3D (Easy / Mod / Hard):** [Evaluate ရလဒ်ဖြည့်ပါ]
   - **AP_BEV (Easy / Mod / Hard):** [Evaluate ရလဒ်ဖြည့်ပါ]
 - **Summary:** Baseline model trained successfully for single-class (Car) 3D detection.
+
+---
+
+## Experiment 2: Multi-Class & Loss Weight Optimization (`exp2_multiclass_depth_opt`)
+
+- **Status:** Planned
+- **Goal:** Extend training to 5 KITTI classes (Car, Pedestrian, Cyclist, Truck, Bus) and fine-tune loss weight ratios for Dimension/Rotation to lift AP3D.
